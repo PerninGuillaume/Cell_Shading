@@ -94,8 +94,8 @@ void display(GLFWwindow *window) {
 
     //programCube->set_uniform_vec3("viewPosition", camera.position);
     glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(0.0f, 4.0f, 0.0f));
-    //model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    model = glm::translate(model, glm::vec3(0.0f, -2.0f, -3.0f));
+    model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
     programCube->set_uniform_mat4("model", model);
 
