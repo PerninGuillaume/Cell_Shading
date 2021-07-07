@@ -29,9 +29,9 @@ void processInput(GLFWwindow *window) {
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
     camera.processKeyboard(Camera_Movement::RIGHT, deltaTime);
   if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-    rotation += 0.5f;
+    rotation += 2.0f;
   if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-    rotation -= 0.5f;
+    rotation -= 2.0f;
 
 }
 
@@ -70,8 +70,8 @@ program *init_program(GLFWwindow *window, const std::string& vertex_shader_filen
 
 void display(GLFWwindow *window) {
 
-  program *programCube = init_program(window, "shaders/vertex_model.glsl",
-                                      "shaders/fragment_model.glsl");
+  program *programCube = init_program(window, "shaders/vertex_link.glsl",
+                                      "shaders/fragment_link.glsl");
   stbi_set_flip_vertically_on_load(true);
   Model backpack("models/link-cartoon/source/LinkCartoon.fbx");
   //Model backpack("models/cube.fbx");
@@ -81,6 +81,14 @@ void display(GLFWwindow *window) {
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetCursorPosCallback(window, mouse_callback);
   glfwSetScrollCallback(window, scroll_callback);
+
+    //DirLight
+    programCube->set_uniform_vec3("dirLight.direction", -0.3f, -1.0f, -0.3f);
+    programCube->set_uniform_vec3("dirLight.ambient",  0.5f);
+    programCube->set_uniform_vec3("dirLight.specular", 0.2f);
+    auto diffuseColor = glm::vec3(1.0f);
+    programCube->set_uniform_vec3("dirLight.diffuse", diffuseColor); // darken diffuse light a bit
+
 
   while (!glfwWindowShouldClose(window)) {
 
