@@ -124,17 +124,20 @@ void display(GLFWwindow *window) {
     model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
     programCube->set_uniform_mat4("model", model);
 
-    model = glm::scale(model, glm::vec3(1.005f));
-    programOutline->set_uniform_mat4("model", model);
+    std::vector<glm::vec3> offset_vecs{camera.right, -camera.right, camera.up, -camera.up};
 
-      glEnable(GL_CULL_FACE);
-      glCullFace(GL_FRONT);
-    backpack.draw(programOutline);
-      glCullFace(GL_BACK);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+
+    for (const auto &dir : offset_vecs)
+    {
+      auto tmp_model = glm::translate(model, dir * 0.008f);
+      programOutline->set_uniform_mat4("model", tmp_model);
+      backpack.draw(programOutline);
+    }
+
+    glCullFace(GL_BACK);
     backpack.draw(programCube);
-
-
-
 
     glfwSwapBuffers(window);
     glfwPollEvents();
