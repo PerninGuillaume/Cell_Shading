@@ -11,6 +11,8 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 float lastXMouse = 800 / 2;
 float lastYMouse = 600 / 2;
+float rotation = 0;
+
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 void processInput(GLFWwindow *window) {
@@ -26,6 +28,11 @@ void processInput(GLFWwindow *window) {
     camera.processKeyboard(Camera_Movement::LEFT, deltaTime);
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
     camera.processKeyboard(Camera_Movement::RIGHT, deltaTime);
+  if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+    rotation += 0.5f;
+  if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+    rotation -= 0.5f;
+
 }
 
 bool firstMouse = true;
@@ -96,6 +103,7 @@ void display(GLFWwindow *window) {
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(0.0f, -2.0f, -3.0f));
     model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
     model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
     programCube->set_uniform_mat4("model", model);
 
