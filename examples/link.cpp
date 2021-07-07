@@ -72,6 +72,11 @@ void display(GLFWwindow *window) {
 
   program *programCube = init_program(window, "shaders/vertex_link.glsl",
                                       "shaders/fragment_link.glsl");
+  program *programOutline = init_program(window, "shaders/vertex_link.glsl",
+                                         "shaders/fragment_black.glsl");
+
+  std::vector<program*> programs = {programCube, programOutline};
+
   stbi_set_flip_vertically_on_load(true);
   Model backpack("models/link-cartoon/source/LinkCartoon.fbx");
   //Model backpack("models/cube.fbx");
@@ -104,8 +109,12 @@ void display(GLFWwindow *window) {
     glm::mat4 projection = glm::perspective(glm::radians(camera.fov_camera), 800.0f / 600.0f,
                                             0.1f, 100.0f);
     glm::mat4 view = camera.view_matrix();
-    programCube->set_uniform_mat4("view", view);
-    programCube->set_uniform_mat4("projection", projection);
+
+    for (auto prg : programs)
+    {
+        prg->set_uniform_mat4("view", view);
+        prg->set_uniform_mat4("projection", projection);
+    }
 
     //programCube->set_uniform_vec3("viewPosition", camera.position);
     glm::mat4 model = glm::mat4(1.0f);
@@ -115,7 +124,17 @@ void display(GLFWwindow *window) {
     model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
     programCube->set_uniform_mat4("model", model);
 
+    model = glm::scale(model, glm::vec3(1.005f));
+    programOutline->set_uniform_mat4("model", model);
+
+      glEnable(GL_CULL_FACE);
+      glCullFace(GL_FRONT);
+    backpack.draw(programOutline);
+      glCullFace(GL_BACK);
     backpack.draw(programCube);
+
+
+
 
     glfwSwapBuffers(window);
     glfwPollEvents();
