@@ -135,4 +135,8 @@ void program::set_uniform_mat4(const std::string &var_name, const glm::mat4 &mat
   glUniformMatrix4fv(uniform_location, 1, GL_FALSE, glm::value_ptr(mat));
 }
 
-
+void program::set_uniform_vector_float(const std::string &var_name, size_t count, float* pointer) {
+  int uniform_location = glGetUniformLocation(this->my_program_, var_name.c_str());
+  this->use();
+  glUniform1fv(uniform_location, count, pointer);
+}

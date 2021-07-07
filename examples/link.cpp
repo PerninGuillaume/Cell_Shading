@@ -87,13 +87,38 @@ void display(GLFWwindow *window) {
   glfwSetCursorPosCallback(window, mouse_callback);
   glfwSetScrollCallback(window, scroll_callback);
 
-    //DirLight
-    programCube->set_uniform_vec3("dirLight.direction", -0.3f, -1.0f, -0.3f);
-    programCube->set_uniform_vec3("dirLight.ambient",  0.5f);
-    programCube->set_uniform_vec3("dirLight.specular", 0.2f);
-    auto diffuseColor = glm::vec3(1.0f);
-    programCube->set_uniform_vec3("dirLight.diffuse", diffuseColor); // darken diffuse light a bit
+  //DirLight
+  programCube->set_uniform_vec3("dirLight.direction", -0.3f, -1.0f, -0.3f);
+  programCube->set_uniform_vec3("dirLight.ambient",  0.5f);
+  programCube->set_uniform_vec3("dirLight.specular", 0.2f);
+  auto diffuseColor = glm::vec3(1.0f);
+  programCube->set_uniform_vec3("dirLight.diffuse", diffuseColor); // darken diffuse light a bit
+  float zAtoon_data[256] = {0};
 
+  for (unsigned int i = 0; i < 256; ++i) {
+    if (i <= 120)
+      zAtoon_data[i] = 0.0f;
+    else if (i <= 136)
+      zAtoon_data[i] = ((i - 120) * 16) / 256.0f;
+    else
+      zAtoon_data[i] = 1.0f;
+  }
+
+  //Lookup table for the coeff variable in the fragment shader
+  //It has the same name as the one used internally by zelda the wind waker
+  /*
+  for (unsigned int i = 0; i < 256; ++i) {
+    if (i / 256.0f < 0.2f)
+      zAtoon_data[i] = 0.0f;
+    else if (i / 256.0f < 0.4f)
+      zAtoon_data[i] = 0.2f;
+    else if (i / 256.0f < 0.5f)
+      zAtoon_data[i] = 0.4f;
+    else
+      zAtoon_data[i] = 1.0f;
+  }
+   */
+  programCube->set_uniform_vector_float("zAtoon", 256, zAtoon_data);
 
   while (!glfwWindowShouldClose(window)) {
 

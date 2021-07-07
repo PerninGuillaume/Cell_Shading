@@ -24,4 +24,5 @@ public:
     GLuint my_program_ = 0;
     std::vector<GLint> shaders_;
 
+  void set_uniform_vector_float(const std::string &var_name, size_t count, float *pointer);
 };
