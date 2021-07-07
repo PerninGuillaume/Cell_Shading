@@ -2,15 +2,17 @@
 
 #include <utility>
 
-Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures)
+Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures, glm::vec3 color)
   : vertices(std::move(vertices))
   , indices(std::move(indices))
   , textures(std::move(textures))
+  , color(color)
 {
   setupMesh();
 }
 
 void Mesh::draw(program* program) {
+  program->set_uniform_vec3("color", color);
   unsigned int diffuse_nb = 1;
   unsigned int specular_nb = 1;
   for (unsigned int i = 0; i < textures.size(); ++i) {

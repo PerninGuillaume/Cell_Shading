@@ -42,6 +42,7 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene) {
   std::vector<unsigned int> indices;
   std::vector<Texture> textures;
 
+  mesh->mColors;
   // Vertices
   bool has_texture_Coords = mesh->mTextureCoords[0];
   for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
@@ -69,12 +70,15 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene) {
     }
   }
 
+  aiColor3D color (0.f,0.f,0.f);
   //Textures coordinates
   if (mesh->mMaterialIndex >= 0) {
     aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 
     std::vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, TextureType::DIFFUSE);
     textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
+
+    material->Get(AI_MATKEY_COLOR_DIFFUSE,color);
 
     std::vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, TextureType::SPECULAR);
     textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
@@ -87,7 +91,8 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene) {
     textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
      */
   }
-  return Mesh(vertices, indices, textures);
+  glm::vec3 color_glm = glm::vec3(color.r, color.g, color.b);
+  return Mesh(vertices, indices, textures, color_glm);
 }
 
 std::vector<Texture> Model::loadMaterialTextures(aiMaterial *material, aiTextureType type, const TextureType& typeName) {
