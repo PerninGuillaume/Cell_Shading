@@ -88,7 +88,7 @@ void display(GLFWwindow *window) {
   glfwSetScrollCallback(window, scroll_callback);
 
   //DirLight
-  programCube->set_uniform_vec3("dirLight.direction", -0.3f, -1.0f, -0.3f);
+  programCube->set_uniform_vec3("dirLight.direction", -1.0f, -1.0f, -0.3f);
   programCube->set_uniform_vec3("dirLight.ambient",  0.1f);
   programCube->set_uniform_vec3("dirLight.specular", 0.2f);
   auto diffuseColor = glm::vec3(1.0f);
@@ -100,6 +100,8 @@ void display(GLFWwindow *window) {
       zAtoon_data[i] = 0.0f;
     else if (i <= 136)
       zAtoon_data[i] = ((i - 120) * 16) / 256.0f;
+    else if (i <= 200)
+      zAtoon_data[i] = ((i - 20) * 2) / 256.0f;
     else
       zAtoon_data[i] = 1.0f;
   }

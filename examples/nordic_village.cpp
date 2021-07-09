@@ -87,8 +87,8 @@ program *init_program(GLFWwindow *window, const std::string& vertex_shader_filen
 
 void display(GLFWwindow *window) {
 
-  program *program = init_program(window, "shaders/vertex_model.glsl",
-                                      "shaders/fragment_model.glsl");
+  program *program = init_program(window, "shaders/vertex_link.glsl",
+                                      "shaders/fragment_link.glsl");
 
   stbi_set_flip_vertically_on_load(true);
   Model village("models/nordic-village/source/final_poblado.obj");
@@ -101,12 +101,27 @@ void display(GLFWwindow *window) {
   glfwSetScrollCallback(window, scroll_callback);
 
   //DirLight
-  program->set_uniform_vec3("dirLight.direction", -0.3f, -1.0f, -0.3f);
-  program->set_uniform_vec3("dirLight.ambient",  0.5f);
+  program->set_uniform_vec3("dirLight.direction", -0.3f, -0.7f, -0.3f);
+  program->set_uniform_vec3("dirLight.ambient",  2.0f);
   program->set_uniform_vec3("dirLight.specular", 0.2f);
   auto diffuseColor = glm::vec3(1.0f);
   program->set_uniform_vec3("dirLight.diffuse", diffuseColor); // darken diffuse light a bit
+  float zAtoon_data[256] = {0};
 
+  for (unsigned int i = 0; i < 256; ++i) {
+    if (i <= 120)
+      zAtoon_data[i] = 0.0f;
+    else if (i <= 136)
+      zAtoon_data[i] = ((i - 120) * 16) / 256.0f;
+    else if (i <= 180)
+      zAtoon_data[i] = ((i - 100) * 2) / 256.0f;
+    else if (i <= 230)
+      zAtoon_data[i] = ((i - 80) * 2) / 256.0f;
+    else
+      zAtoon_data[i] = 1.0f;
+  }
+
+  program->set_uniform_vector_float("zAtoon", 256, zAtoon_data);
 
   while (!glfwWindowShouldClose(window)) {
     std::cout << displacement << std::endl;
@@ -129,25 +144,26 @@ void display(GLFWwindow *window) {
 
     //program->set_uniform_vec3("viewPosition", camera.position);
     glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(0.0f, -2.0f, -3.0f));
-    model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
+    model = glm::translate(model, glm::vec3(0.0f, -10.0f, -3.0f));
+//    model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+//    model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 1.0f, 0.0f));
     model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
     program->set_uniform_mat4("model", model);
 
     std::vector<glm::vec3> offset_vecs{camera.right, -camera.right, camera.up, -camera.up};
 
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
+//    glEnable(GL_CULL_FACE);
+//    glCullFace(GL_FRONT);
 
-    if (wireframe)
-      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-
-
-    if (wireframe)
-      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glCullFace(GL_BACK);
+//    if (wireframe)
+//      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+//
+//
+//
+//    if (wireframe)
+//      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+//    glCullFace(GL_BACK);
     village.draw(program);
 
     glfwSwapBuffers(window);
