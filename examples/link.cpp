@@ -12,6 +12,11 @@ float lastFrame = 0.0f;
 float lastXMouse = 800 / 2;
 float lastYMouse = 600 / 2;
 float rotation = 0;
+bool wireframe = false;
+bool vertex_shifted_along_normal = false;
+float deltaTime_since_last_press = 0.0f;
+float time_of_last_press = 0.0f;
+float displacement = 0.006f;
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
@@ -32,7 +37,18 @@ void processInput(GLFWwindow *window) {
     rotation += 2.0f;
   if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
     rotation -= 2.0f;
-
+  if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+    displacement += 0.00001f;
+  if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+    displacement -= 0.00001f;
+  if (glfwGetKey(window, GLFW_KEY_P) && deltaTime_since_last_press > 0.2f) {
+    time_of_last_press = glfwGetTime();
+    wireframe = !wireframe;
+  }
+  if (glfwGetKey(window, GLFW_KEY_N) && deltaTime_since_last_press > 0.2f) {
+    time_of_last_press = glfwGetTime();
+    vertex_shifted_along_normal = !vertex_shifted_along_normal;
+  }
 }
 
 bool firstMouse = true;
@@ -72,7 +88,7 @@ void display(GLFWwindow *window) {
 
   program *programCube = init_program(window, "shaders/vertex_link.glsl",
                                       "shaders/fragment_link.glsl");
-  program *programOutline = init_program(window, "shaders/vertex_link.glsl",
+  program *programOutline = init_program(window, "shaders/vertex_scale_up.glsl",
                                          "shaders/fragment_black.glsl");
 
   std::vector<program*> programs = {programCube, programOutline};
@@ -121,9 +137,10 @@ void display(GLFWwindow *window) {
   programCube->set_uniform_vector_float("zAtoon", 256, zAtoon_data);
 
   while (!glfwWindowShouldClose(window)) {
-
+    //std::cout << displacement << std::endl;
     float currentFrame = glfwGetTime();
     deltaTime = currentFrame - lastFrame;
+    deltaTime_since_last_press = currentFrame - time_of_last_press;
     lastFrame = currentFrame;
 
     processInput(window); //input
@@ -154,13 +171,25 @@ void display(GLFWwindow *window) {
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
 
-    for (const auto &dir : offset_vecs)
-    {
-      auto tmp_model = glm::translate(model, dir * 0.008f);
-      programOutline->set_uniform_mat4("model", tmp_model);
+    if (wireframe)
+      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    if (vertex_shifted_along_normal) {
+      programOutline->set_uniform_mat4("model", model);
+      programOutline->set_uniform_float("displacement", displacement);
       backpack.draw(programOutline);
     }
+    else {
+      programOutline->set_uniform_float("displacement", 0.0f);
+      for (const auto &dir : offset_vecs) {
+        auto tmp_model = glm::translate(model, dir * 0.008f);
+        programOutline->set_uniform_mat4("model", tmp_model);
+        backpack.draw(programOutline);
+      }
+    }
 
+    if (wireframe)
+      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glCullFace(GL_BACK);
     backpack.draw(programCube);
 
