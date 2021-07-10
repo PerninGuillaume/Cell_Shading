@@ -1,4 +1,4 @@
-#include "nordic_village.h"
+#include "isometric_world.h"
 
 #include "../Camera.h"
 #include <iostream>
@@ -6,7 +6,7 @@
 #include "../stb_image.h"
 #include "../Model.h"
 
-namespace nordic_village {
+namespace isometric_world {
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -96,20 +96,19 @@ program *init_program(GLFWwindow *window, const std::string& vertex_shader_filen
 void display(GLFWwindow *window) {
 
   program *program = init_program(window, "shaders/vertex_link.glsl",
-                                      "shaders/fragment_link.glsl");
+                                  "shaders/fragment_link.glsl");
 
-  stbi_set_flip_vertically_on_load(true);
-  Model village("models/nordic-village/nordic_village_-/scene.gltf");
-  //Model village("models/nordic-village/source/final_poblado.obj");
-  //Model village("models/cube.fbx");
+  //stbi_set_flip_vertically_on_load(true);
+  //Model village("models/isometric_world/scene.gltf");
+  Model village("models/isometric_world/isometric-world/source/auto.blend.obj");
+  //Model village("models/isometric_world/isometric-world/source/auto.blend.blend");
 
   glEnable(GL_DEPTH_TEST);
   //Capture the mouse
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetCursorPosCallback(window, mouse_callback);
   glfwSetScrollCallback(window, scroll_callback);
-
-  //DirLight
+//DirLight
   program->set_uniform_vec3("dirLight.direction", -0.3f, -0.7f, -0.3f);
   program->set_uniform_vec3("dirLight.ambient",  2.0f);
   program->set_uniform_vec3("dirLight.specular", 0.2f);
@@ -131,10 +130,8 @@ void display(GLFWwindow *window) {
   }
 
   program->set_uniform_vector_float("zAtoon", 256, zAtoon_data);
-
   double lastTime = glfwGetTime();
   int nbFrames = 0;
-
   while (!glfwWindowShouldClose(window)) {
 
     float currentFrame = glfwGetTime();
@@ -143,9 +140,7 @@ void display(GLFWwindow *window) {
     lastFrame = currentFrame;
 
     nbFrames++;
-    if ( currentFrame - lastTime >= 1.0 ){ // If last prinf() was more than 1 sec ago
-      //16.6ms target for 60fps
-      //33.3ms target for 30fps
+    if ( currentFrame - lastTime >= 1.0 ){
       std::cout << 1000.0 / nbFrames << " ms/frame" << std::endl;
       nbFrames = 0;
       lastTime += 1.0;
@@ -164,26 +159,9 @@ void display(GLFWwindow *window) {
 
     //program->set_uniform_vec3("viewPosition", camera.position);
     glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(0.0f, -10.0f, -3.0f));
-//    model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-//    model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 0.0f, 0.0f));
     model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 1.0f, 0.0f));
-    model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
     program->set_uniform_mat4("model", model);
 
-    std::vector<glm::vec3> offset_vecs{camera.right, -camera.right, camera.up, -camera.up};
-
-//    glEnable(GL_CULL_FACE);
-//    glCullFace(GL_FRONT);
-
-//    if (wireframe)
-//      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-//
-//
-//
-//    if (wireframe)
-//      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-//    glCullFace(GL_BACK);
     village.draw(program);
 
     glfwSwapBuffers(window);

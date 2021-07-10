@@ -38,13 +38,18 @@ void Model::processNode(aiNode *node, const aiScene *scene) {
 }
 
 Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene) {
+  bool use_color = true;
   std::vector<Vertex> vertices;
   std::vector<unsigned int> indices;
   std::vector<Texture> textures;
 
+  bool has_texture_Coords = mesh->mTextureCoords[0];
+  bool has_vertex_color = mesh->HasVertexColors(0);
+  if (has_vertex_color)
+    std::cout << " Color : " << mesh->mColors[0]->r << mesh->mColors[0]->g << mesh->mColors[0]->b << std::endl;
+
   mesh->mColors;
   // Vertices
-  bool has_texture_Coords = mesh->mTextureCoords[0];
   for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
     Vertex vertex;
     auto v = mesh->mVertices[i];
@@ -74,11 +79,24 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene) {
   //Textures coordinates
   if (mesh->mMaterialIndex >= 0) {
     aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-
+    if (not_printed_before) {
+      not_printed_before = false;
+      for (unsigned int index = 0; index < material->mNumProperties; ++index) {
+        auto material_property = material->mProperties[index];
+        std::cout << material_property->mKey.C_Str() << std::endl;
+        auto data = material_property->mData;
+        std::cout << data;
+      }
+    }
     std::vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, TextureType::DIFFUSE);
     textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
 
     material->Get(AI_MATKEY_COLOR_DIFFUSE,color);
+    float opacity;
+    //material->Get("mat.gltf.alphaCutOff", opacity);
+    //std::cout << opacity << std::endl;
+    //material->Get(AI_MATKEY_COLOR_SPECULAR,color);
+    //material->Get(AI_MATKEY_COLOR_AMBIENT,color);
 
     std::vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, TextureType::SPECULAR);
     textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
@@ -92,7 +110,14 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene) {
      */
   }
   glm::vec3 color_glm = glm::vec3(color.r, color.g, color.b);
-  return Mesh(vertices, indices, textures, color_glm);
+  if (color_glm.r != 0 || color_glm.g != 0 || color_glm.b != 0) {
+    std::cout << "Color found in material : " << color_glm.r << ' ' << color_glm.g << ' ' << color_glm.b << std::endl;
+  }
+  if (!textures.empty()) {
+    use_color = false;
+    std::cout << "Found at least one texture" << std::endl;
+  }
+  return Mesh(vertices, indices, textures, color_glm, use_color);
 }
 
 std::vector<Texture> Model::loadMaterialTextures(aiMaterial *material, aiTextureType type, const TextureType& typeName) {
@@ -123,6 +148,7 @@ std::vector<Texture> Model::loadMaterialTextures(aiMaterial *material, aiTexture
 unsigned int loadTexture(const std::string& path, const std::string& directory)
 {
   std::string filename = directory + '/' + path;
+  std::cout << "Trying to load texture : " << filename << std::endl;
 
   unsigned int textureID;
   glGenTextures(1, &textureID);

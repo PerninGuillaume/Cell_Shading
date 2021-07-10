@@ -1,17 +1,21 @@
 #include "Mesh.h"
 
 #include <utility>
+#include <iostream>
 
-Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures, glm::vec3 color)
+Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures, glm::vec3 color,
+           bool use_color)
   : vertices(std::move(vertices))
   , indices(std::move(indices))
   , textures(std::move(textures))
   , color(color)
+  , use_color(use_color)
 {
   setupMesh();
 }
 
 void Mesh::draw(program* program) {
+  program->set_uniform_bool("use_color", use_color);
   program->set_uniform_vec3("color", color);
   unsigned int diffuse_nb = 1;
   unsigned int specular_nb = 1;
@@ -24,7 +28,10 @@ void Mesh::draw(program* program) {
       case SPECULAR:suffix = "specular" + std::to_string(specular_nb++);
         break;
     }
-    program->set_uniform_float("material." + suffix, i);
+    std::string name = "texture_" + suffix;
+    //std::cout << "Setting uniform : " << name << std::endl;
+    program->set_uniform_float(name, i);
+
     glBindTexture(GL_TEXTURE_2D, textures[i].id);
   }
   glActiveTexture(GL_TEXTURE0);

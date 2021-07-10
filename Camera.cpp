@@ -29,7 +29,9 @@ void Camera::processKeyboardFPS(Camera_Movement direction, float deltaTime) {
 }
 
 void Camera::processKeyboard(Camera_Movement direction, float deltaTime) {
-  const float cameraSpeed = movement_speed * deltaTime;
+  float cameraSpeed = movement_speed * deltaTime;
+  if (shiftPressed)
+    cameraSpeed *= sprintSpeedUp;
   switch (direction) {
     case Camera_Movement::FORWARD:
       position += front * cameraSpeed;
@@ -85,5 +87,8 @@ void Camera::refresh_vectors() {
   right = glm::normalize(glm::cross(front, worldUp));
   up = glm::normalize(glm::cross(right, front));
 
+}
+void Camera::shift_pressed(bool is_pressed) {
+  shiftPressed = is_pressed;
 }
 

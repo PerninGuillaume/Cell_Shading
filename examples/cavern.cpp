@@ -1,4 +1,4 @@
-#include "nordic_village.h"
+#include "cavern.h"
 
 #include "../Camera.h"
 #include <iostream>
@@ -6,7 +6,7 @@
 #include "../stb_image.h"
 #include "../Model.h"
 
-namespace nordic_village {
+namespace cavern {
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -96,11 +96,11 @@ program *init_program(GLFWwindow *window, const std::string& vertex_shader_filen
 void display(GLFWwindow *window) {
 
   program *program = init_program(window, "shaders/vertex_link.glsl",
-                                      "shaders/fragment_link.glsl");
+                                  "shaders/fragment_link.glsl");
 
-  stbi_set_flip_vertically_on_load(true);
-  Model village("models/nordic-village/nordic_village_-/scene.gltf");
-  //Model village("models/nordic-village/source/final_poblado.obj");
+  //stbi_set_flip_vertically_on_load(true);
+  Model village("models/cavern-freaky-turtle/source/cavernkeepers.fbx");
+  //Model village("models/cavern-freaky-turtle/cavern_freaky_turtle/scene.gltf");
   //Model village("models/cube.fbx");
 
   glEnable(GL_DEPTH_TEST);
@@ -109,6 +109,8 @@ void display(GLFWwindow *window) {
   glfwSetCursorPosCallback(window, mouse_callback);
   glfwSetScrollCallback(window, scroll_callback);
 
+  double lastTime = glfwGetTime();
+  int nbFrames = 0;
   //DirLight
   program->set_uniform_vec3("dirLight.direction", -0.3f, -0.7f, -0.3f);
   program->set_uniform_vec3("dirLight.ambient",  2.0f);
@@ -131,10 +133,6 @@ void display(GLFWwindow *window) {
   }
 
   program->set_uniform_vector_float("zAtoon", 256, zAtoon_data);
-
-  double lastTime = glfwGetTime();
-  int nbFrames = 0;
-
   while (!glfwWindowShouldClose(window)) {
 
     float currentFrame = glfwGetTime();
@@ -171,19 +169,6 @@ void display(GLFWwindow *window) {
     model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
     program->set_uniform_mat4("model", model);
 
-    std::vector<glm::vec3> offset_vecs{camera.right, -camera.right, camera.up, -camera.up};
-
-//    glEnable(GL_CULL_FACE);
-//    glCullFace(GL_FRONT);
-
-//    if (wireframe)
-//      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-//
-//
-//
-//    if (wireframe)
-//      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-//    glCullFace(GL_BACK);
     village.draw(program);
 
     glfwSwapBuffers(window);

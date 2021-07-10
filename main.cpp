@@ -61,9 +61,11 @@ int main() {
     //colors::display(window);
     //light_map::display(window);
     //multiples_lights::display(window);
-//    backpack::display(window);
-//    link::display(window);
-    nordic_village::display(window);
+    //backpack::display(window);
+    //link::display(window);
+    //nordic_village::display(window);
+    cavern::display(window);
+    //isometric_world::display(window);
   } catch (const char* msg) {
     std::cerr << msg << std::endl;
   }

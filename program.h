@@ -20,6 +20,7 @@ public:
     void set_uniform_vec3(const std::string &var_name, float val);
     void set_uniform_int(const std::string &var_name, int value);
     void set_uniform_mat4(const std::string &var_name, const glm::mat4& mat);
+    void set_uniform_bool(const std::string &var_name, bool value);
 
     GLuint my_program_ = 0;
     std::vector<GLint> shaders_;

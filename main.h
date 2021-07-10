@@ -21,3 +21,5 @@
 #include "examples/backpack.h"
 #include "examples/link.h"
 #include "examples/nordic_village.h"
+#include "examples/cavern.h"
+#include "examples/isometric_world.h"

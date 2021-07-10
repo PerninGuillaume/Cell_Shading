@@ -18,6 +18,7 @@ public:
     void processMouse(float xoffset, float yoffset);
     void processScroll(float yoffset);
     glm::mat4 view_matrix() const;
+    void shift_pressed(bool is_pressed);
 
     glm::vec3 position;
     glm::vec3 front;
@@ -32,6 +33,8 @@ public:
     float yaw = -90.0f;
     float pitch = 0.0f;
     float fov_camera = 45.0f;
+    bool shiftPressed = false;
+    float sprintSpeedUp = 20.0f;
 
     void refresh_vectors();
 };

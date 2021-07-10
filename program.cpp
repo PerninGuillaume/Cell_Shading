@@ -140,3 +140,8 @@ void program::set_uniform_vector_float(const std::string &var_name, size_t count
   this->use();
   glUniform1fv(uniform_location, count, pointer);
 }
+void program::set_uniform_bool(const std::string &var_name, bool value) {
+  int uniform_location = glGetUniformLocation(this->my_program_, var_name.c_str());
+  this->use();
+  glUniform1i(uniform_location, value);
+}
