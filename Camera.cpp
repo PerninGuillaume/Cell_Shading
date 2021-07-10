@@ -32,6 +32,8 @@ void Camera::processKeyboard(Camera_Movement direction, float deltaTime) {
   float cameraSpeed = movement_speed * deltaTime;
   if (shiftPressed)
     cameraSpeed *= sprintSpeedUp;
+  else if (ctrlPressed)
+    cameraSpeed *= crouchSlowDown;
   switch (direction) {
     case Camera_Movement::FORWARD:
       position += front * cameraSpeed;
@@ -90,5 +92,8 @@ void Camera::refresh_vectors() {
 }
 void Camera::shift_pressed(bool is_pressed) {
   shiftPressed = is_pressed;
+}
+void Camera::ctrl_pressed(bool is_pressed) {
+  ctrlPressed = is_pressed;
 }
 

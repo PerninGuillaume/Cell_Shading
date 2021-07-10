@@ -19,8 +19,9 @@ public:
     void processScroll(float yoffset);
     glm::mat4 view_matrix() const;
     void shift_pressed(bool is_pressed);
+  void ctrl_pressed(bool is_pressed);
 
-    glm::vec3 position;
+  glm::vec3 position;
     glm::vec3 front;
     glm::vec3 up;
     const glm::vec3 worldUp; //Original up value, needed
@@ -34,7 +35,9 @@ public:
     float pitch = 0.0f;
     float fov_camera = 45.0f;
     bool shiftPressed = false;
+    bool ctrlPressed = false;
     float sprintSpeedUp = 20.0f;
+    float crouchSlowDown = 0.1f;
 
     void refresh_vectors();
 };
