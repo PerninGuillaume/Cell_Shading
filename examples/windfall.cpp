@@ -152,6 +152,8 @@ void display(GLFWwindow *window) {
                                   "shaders/fragment_model.glsl");
   program *program_skybox = init_program(window, "shaders/vertex_skybox.glsl",
                                          "shaders/fragment_skybox.glsl");
+  program *program_water = init_program(window, "shaders/vertex_water.glsl",
+                                        "shaders/fragment_water.glsl");
   //stbi_set_flip_vertically_on_load(true);
   Model windfall("models/Windfall Island/Windfall/Windfall.obj");
 
@@ -213,12 +215,32 @@ void display(GLFWwindow *window) {
       -1.0f, -1.0f,  1.0f,
       1.0f, -1.0f,  1.0f
   };
+
   unsigned int skyboxVAO, skyboxVBO;
   glGenVertexArrays(1, &skyboxVAO);
   glGenBuffers(1, &skyboxVBO);
   glBindVertexArray(skyboxVAO);
   glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+  float heightf = -10.0;
+  float waterVertices[] = {
+          -20000.0f,  heightf, -20000.0f,
+          20000.0f,  heightf, -20000.0f,
+          20000.0f,  heightf,  20000.0f,
+          20000.0f,  heightf,  20000.0f,
+          -20000.0f,  heightf,  20000.0f,
+          -20000.0f,  heightf, -20000.0f,
+  };
+
+  unsigned int waterVAO, waterVBO;
+  glGenVertexArrays(1, &waterVAO);
+  glGenBuffers(1, &waterVBO);
+  glBindVertexArray(waterVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, waterVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(waterVertices), &waterVertices, GL_STATIC_DRAW);
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
@@ -285,6 +307,21 @@ void display(GLFWwindow *window) {
     glDepthFunc(GL_LESS);
     //glDepthMask(GL_TRUE);
 
+    // Water rendering
+
+    program_water->use();
+    view = camera.view_matrix();
+    glm::mat4 model = glm::mat4(1.0f);
+    program_water->set_uniform_mat4("view", view);
+    program_water->set_uniform_mat4("projection", projection);
+    program_water->set_uniform_mat4("model", model);
+
+    glBindVertexArray(waterVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+
+
+
 
     //Windfall rendering
 
@@ -295,7 +332,7 @@ void display(GLFWwindow *window) {
     program_windfall->set_uniform_float("alpha_clip", alpha_clip);
 
     //program_windfall->set_uniform_vec3("viewPosition", camera.position);
-    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::mat4(1.0f);
     model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 1.0f, 0.0f));
     model = glm::translate(model, glm::vec3(1.0f, -10.0f, -25.0f));
     model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
