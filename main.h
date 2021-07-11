@@ -25,3 +25,4 @@
 #include "examples/isometric_world.h"
 #include "examples/bomb_shop.h"
 #include "examples/windfall.h"
+#include "examples/skybox.h"

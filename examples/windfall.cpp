@@ -12,7 +12,7 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 float lastXMouse = 800 / 2;
 float lastYMouse = 600 / 2;
-float alpha_clip = 0.5f;
+float alpha_clip = 0.3f;
 float rotation = 0;
 bool wireframe = false;
 bool vertex_shifted_along_normal = false;
@@ -58,14 +58,12 @@ void processInput(GLFWwindow *window) {
 
   if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS)
   {
-    if (alpha_clip < 1.0f)
-      alpha_clip += 0.01f;
+    alpha_clip = std::min(1.0f, alpha_clip += 0.01f);
     std::cout << "alpha_clip = " << alpha_clip << std::endl;
   }
 
   if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
-    if (alpha_clip > 0.0f)
-      alpha_clip -= 0.01f;
+    alpha_clip = std::max(0.0f, alpha_clip -= 0.01f);
     std::cout << "alpha_clip = " << alpha_clip << std::endl;
   }
   if (glfwGetKey(window, GLFW_KEY_P) && deltaTime_since_last_press > 0.2f) {
@@ -99,6 +97,38 @@ void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
 }
 
 
+unsigned int loadCubemap(const std::vector<std::string>& faces)
+{
+  unsigned int textureID;
+  glGenTextures(1, &textureID);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+  int width, height, nrChannels;
+  for (unsigned int i = 0; i < faces.size(); i++)
+  {
+    unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+    if (data)
+    {
+      glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                   0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+      );
+      stbi_image_free(data);
+    }
+    else
+    {
+      std::cout << "Cubemap tex failed to load at path: " << faces[i] << std::endl;
+      stbi_image_free(data);
+    }
+  }
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+  return textureID;
+}
+
 program *init_program(GLFWwindow *window, const std::string& vertex_shader_filename,
                       const std::string& fragment_shader_filename) {
   program *program = program::make_program(vertex_shader_filename,
@@ -113,23 +143,92 @@ program *init_program(GLFWwindow *window, const std::string& vertex_shader_filen
 
 void display(GLFWwindow *window) {
 
-  program *program = init_program(window, "shaders/vertex_model.glsl",
-                                  "shaders/fragment_model.glsl");
-
-  //stbi_set_flip_vertically_on_load(true);
-  Model windfall("models/Windfall Island/Windfall/Windfall.obj");
-
-  glEnable(GL_DEPTH_TEST);
   //Capture the mouse
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetCursorPosCallback(window, mouse_callback);
   glfwSetScrollCallback(window, scroll_callback);
+
+  program *program_windfall = init_program(window, "shaders/vertex_model.glsl",
+                                  "shaders/fragment_model.glsl");
+  program *program_skybox = init_program(window, "shaders/vertex_skybox.glsl",
+                                         "shaders/fragment_skybox.glsl");
+  //stbi_set_flip_vertically_on_load(true);
+  Model windfall("models/Windfall Island/Windfall/Windfall.obj");
+
+  glEnable(GL_DEPTH_TEST);
+  //Skybox
+
+  std::vector<std::string> faces = {
+      "images/skybox/right.jpg",
+      "images/skybox/left.jpg",
+      "images/skybox/top.jpg",
+      "images/skybox/bottom.jpg",
+      "images/skybox/front.jpg",
+      "images/skybox/back.jpg"
+  };
+  unsigned int cubemapTexture = loadCubemap(faces);
+  program_skybox->set_uniform_int("skybox", 0);
+
+  float skyboxVertices[] = {
+      // positions
+      -1.0f,  1.0f, -1.0f,
+      -1.0f, -1.0f, -1.0f,
+      1.0f, -1.0f, -1.0f,
+      1.0f, -1.0f, -1.0f,
+      1.0f,  1.0f, -1.0f,
+      -1.0f,  1.0f, -1.0f,
+
+      -1.0f, -1.0f,  1.0f,
+      -1.0f, -1.0f, -1.0f,
+      -1.0f,  1.0f, -1.0f,
+      -1.0f,  1.0f, -1.0f,
+      -1.0f,  1.0f,  1.0f,
+      -1.0f, -1.0f,  1.0f,
+
+      1.0f, -1.0f, -1.0f,
+      1.0f, -1.0f,  1.0f,
+      1.0f,  1.0f,  1.0f,
+      1.0f,  1.0f,  1.0f,
+      1.0f,  1.0f, -1.0f,
+      1.0f, -1.0f, -1.0f,
+
+      -1.0f, -1.0f,  1.0f,
+      -1.0f,  1.0f,  1.0f,
+      1.0f,  1.0f,  1.0f,
+      1.0f,  1.0f,  1.0f,
+      1.0f, -1.0f,  1.0f,
+      -1.0f, -1.0f,  1.0f,
+
+      -1.0f,  1.0f, -1.0f,
+      1.0f,  1.0f, -1.0f,
+      1.0f,  1.0f,  1.0f,
+      1.0f,  1.0f,  1.0f,
+      -1.0f,  1.0f,  1.0f,
+      -1.0f,  1.0f, -1.0f,
+
+      -1.0f, -1.0f, -1.0f,
+      -1.0f, -1.0f,  1.0f,
+      1.0f, -1.0f, -1.0f,
+      1.0f, -1.0f, -1.0f,
+      -1.0f, -1.0f,  1.0f,
+      1.0f, -1.0f,  1.0f
+  };
+  unsigned int skyboxVAO, skyboxVBO;
+  glGenVertexArrays(1, &skyboxVAO);
+  glGenBuffers(1, &skyboxVBO);
+  glBindVertexArray(skyboxVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+  /*
 //DirLight
-  program->set_uniform_vec3("dirLight.direction", -0.3f, -0.7f, -0.3f);
-  program->set_uniform_vec3("dirLight.ambient",  2.0f);
-  program->set_uniform_vec3("dirLight.specular", 0.2f);
+  program_windfall->set_uniform_vec3("dirLight.direction", -0.3f, -0.7f, -0.3f);
+  program_windfall->set_uniform_vec3("dirLight.ambient",  2.0f);
+  program_windfall->set_uniform_vec3("dirLight.specular", 0.2f);
   auto diffuseColor = glm::vec3(1.0f);
-  program->set_uniform_vec3("dirLight.diffuse", diffuseColor); // darken diffuse light a bit
+  program_windfall->set_uniform_vec3("dirLight.diffuse", diffuseColor); // darken diffuse light a bit
   float zAtoon_data[256] = {0};
 
   for (unsigned int i = 0; i < 256; ++i) {
@@ -145,7 +244,8 @@ void display(GLFWwindow *window) {
       zAtoon_data[i] = 1.0f;
   }
 
-  program->set_uniform_vector_float("zAtoon", 256, zAtoon_data);
+  program_windfall->set_uniform_vector_float("zAtoon", 256, zAtoon_data);
+   */
   double lastTime = glfwGetTime();
   int nbFrames = 0;
   while (!glfwWindowShouldClose(window)) {
@@ -167,21 +267,42 @@ void display(GLFWwindow *window) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glm::mat4 projection = glm::perspective(glm::radians(camera.fov_camera), 800.0f / 600.0f,
-                                            0.01f, 1000.0f);
-    glm::mat4 view = camera.view_matrix();
+                                            0.1f, 100.0f);
 
-    program->set_uniform_mat4("view", view);
-    program->set_uniform_mat4("projection", projection);
-    program->set_uniform_float("alpha_clip", alpha_clip);
+    //Skybox rendering
+    //glDepthMask(GL_FALSE);
+    program_skybox->use();
 
-    //program->set_uniform_vec3("viewPosition", camera.position);
+    glDepthFunc(GL_LEQUAL);
+    glm::mat4 view = glm::mat4(glm::mat3(camera.view_matrix())); // Remove the translation from the view matrix
+    program_skybox->set_uniform_mat4("view", view);
+    program_skybox->set_uniform_mat4("projection", projection);
+    glBindVertexArray(skyboxVAO);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
+    glDepthFunc(GL_LESS);
+    //glDepthMask(GL_TRUE);
+
+
+    //Windfall rendering
+
+    view = camera.view_matrix();
+
+    program_windfall->set_uniform_mat4("view", view);
+    program_windfall->set_uniform_mat4("projection", projection);
+    program_windfall->set_uniform_float("alpha_clip", alpha_clip);
+
+    //program_windfall->set_uniform_vec3("viewPosition", camera.position);
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 1.0f, 0.0f));
     model = glm::translate(model, glm::vec3(1.0f, -10.0f, -25.0f));
     model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
-    program->set_uniform_mat4("model", model);
+    program_windfall->set_uniform_mat4("model", model);
 
-    windfall.draw(program);
+    windfall.draw(program_windfall);
+
 
     glfwSwapBuffers(window);
     glfwPollEvents();

@@ -68,6 +68,7 @@ int main() {
     //isometric_world::display(window);
     //bomb_shop::display(window);
     windfall::display(window);
+    //skybox::display(window);
   } catch (const char* msg) {
     std::cerr << msg << std::endl;
   }
