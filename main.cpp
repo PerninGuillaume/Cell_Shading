@@ -66,7 +66,8 @@ int main() {
     //nordic_village::display(window);
     //cavern::display(window);
     //isometric_world::display(window);
-    bomb_shop::display(window);
+    //bomb_shop::display(window);
+    windfall::display(window);
   } catch (const char* msg) {
     std::cerr << msg << std::endl;
   }
