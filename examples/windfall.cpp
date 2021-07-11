@@ -12,6 +12,7 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 float lastXMouse = 800 / 2;
 float lastYMouse = 600 / 2;
+float alpha_clip = 0.5f;
 float rotation = 0;
 bool wireframe = false;
 bool vertex_shifted_along_normal = false;
@@ -55,6 +56,18 @@ void processInput(GLFWwindow *window) {
   if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
     displacement -= 0.00001f;
 
+  if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS)
+  {
+    if (alpha_clip < 1.0f)
+      alpha_clip += 0.01f;
+    std::cout << "alpha_clip = " << alpha_clip << std::endl;
+  }
+
+  if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
+    if (alpha_clip > 0.0f)
+      alpha_clip -= 0.01f;
+    std::cout << "alpha_clip = " << alpha_clip << std::endl;
+  }
   if (glfwGetKey(window, GLFW_KEY_P) && deltaTime_since_last_press > 0.2f) {
     time_of_last_press = glfwGetTime();
     wireframe = !wireframe;
@@ -159,6 +172,7 @@ void display(GLFWwindow *window) {
 
     program->set_uniform_mat4("view", view);
     program->set_uniform_mat4("projection", projection);
+    program->set_uniform_float("alpha_clip", alpha_clip);
 
     //program->set_uniform_vec3("viewPosition", camera.position);
     glm::mat4 model = glm::mat4(1.0f);
