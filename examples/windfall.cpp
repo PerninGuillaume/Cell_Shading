@@ -17,14 +17,6 @@ float lastFrame = 0.0f;
 float lastXMouse = 800 / 2;
 float lastYMouse = 600 / 2;
 bool right_button_mouse_clicked = false;
-float alpha_clip = 0.3f;
-float rotation = 0;
-bool wireframe = false;
-bool vertex_shifted_along_normal = false;
-bool with_lighting = true;
-float deltaTime_since_last_press = 0.0f;
-float time_of_last_press = 0.0f;
-float displacement = 0.006f;
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
@@ -51,23 +43,6 @@ void processInput(GLFWwindow *window) {
     camera.processKeyboard(Camera_Movement::LEFT, deltaTime);
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
     camera.processKeyboard(Camera_Movement::RIGHT, deltaTime);
-
-  if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-    rotation += 2.0f;
-  if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-    rotation -= 2.0f;
-
-  if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-    displacement += 0.00001f;
-  if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-    displacement -= 0.00001f;
-
-  /*
-  if (glfwGetKey(window, GLFW_KEY_N) && deltaTime_since_last_press > 0.2f) {
-    time_of_last_press = glfwGetTime();
-    vertex_shifted_along_normal = !vertex_shifted_along_normal;
-  }
-   */
 }
 
 bool firstMouse = true;
@@ -92,8 +67,7 @@ void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
   camera.processScroll(yoffset);
 }
 
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
-{
+void mouse_button_callback(GLFWwindow *window, int button, int action, int mods) {
   if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     right_button_mouse_clicked = true;
@@ -104,25 +78,20 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
   }
 }
 
-unsigned int loadCubemap(const std::vector<std::string>& faces)
-{
+unsigned int loadCubemap(const std::vector<std::string> &faces) {
   unsigned int textureID;
   glGenTextures(1, &textureID);
   glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 
   int width, height, nrChannels;
-  for (unsigned int i = 0; i < faces.size(); i++)
-  {
+  for (unsigned int i = 0; i < faces.size(); i++) {
     unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
-    if (data)
-    {
+    if (data) {
       glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
                    0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
       );
       stbi_image_free(data);
-    }
-    else
-    {
+    } else {
       std::cout << "Cubemap tex failed to load at path: " << faces[i] << std::endl;
       stbi_image_free(data);
     }
@@ -136,15 +105,10 @@ unsigned int loadCubemap(const std::vector<std::string>& faces)
   return textureID;
 }
 
-unsigned int loadSkyBox(program* program) {
+unsigned int loadSkyBox(program *program) {
 
   std::vector<std::string> faces = {
-      "images/skybox/back.jpg",
-      "images/skybox/back.jpg",
-      "images/skybox/top.jpg",
-      "images/skybox/back.jpg",
-      "images/skybox/back.jpg",
-      "images/skybox/back.jpg"
+      "images/skybox/back.jpg", "images/skybox/back.jpg", "images/skybox/top.jpg", "images/skybox/back.jpg", "images/skybox/back.jpg", "images/skybox/back.jpg"
   };
   unsigned int cubemapTexture = loadCubemap(faces);
   program->set_uniform_int("skybox", 0);
@@ -154,47 +118,7 @@ unsigned int loadSkyBox(program* program) {
 unsigned int skyBox_create_VAO() {
   float skyboxVertices[] = {
       // positions
-      -1.0f,  1.0f, -1.0f,
-      -1.0f, -1.0f, -1.0f,
-      1.0f, -1.0f, -1.0f,
-      1.0f, -1.0f, -1.0f,
-      1.0f,  1.0f, -1.0f,
-      -1.0f,  1.0f, -1.0f,
-
-      -1.0f, -1.0f,  1.0f,
-      -1.0f, -1.0f, -1.0f,
-      -1.0f,  1.0f, -1.0f,
-      -1.0f,  1.0f, -1.0f,
-      -1.0f,  1.0f,  1.0f,
-      -1.0f, -1.0f,  1.0f,
-
-      1.0f, -1.0f, -1.0f,
-      1.0f, -1.0f,  1.0f,
-      1.0f,  1.0f,  1.0f,
-      1.0f,  1.0f,  1.0f,
-      1.0f,  1.0f, -1.0f,
-      1.0f, -1.0f, -1.0f,
-
-      -1.0f, -1.0f,  1.0f,
-      -1.0f,  1.0f,  1.0f,
-      1.0f,  1.0f,  1.0f,
-      1.0f,  1.0f,  1.0f,
-      1.0f, -1.0f,  1.0f,
-      -1.0f, -1.0f,  1.0f,
-
-      -1.0f,  1.0f, -1.0f,
-      1.0f,  1.0f, -1.0f,
-      1.0f,  1.0f,  1.0f,
-      1.0f,  1.0f,  1.0f,
-      -1.0f,  1.0f,  1.0f,
-      -1.0f,  1.0f, -1.0f,
-
-      -1.0f, -1.0f, -1.0f,
-      -1.0f, -1.0f,  1.0f,
-      1.0f, -1.0f, -1.0f,
-      1.0f, -1.0f, -1.0f,
-      -1.0f, -1.0f,  1.0f,
-      1.0f, -1.0f,  1.0f
+      -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f
   };
 
   unsigned int skyboxVAO, skyboxVBO;
@@ -204,20 +128,14 @@ unsigned int skyBox_create_VAO() {
   glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *) 0);
   return skyboxVAO;
 }
 
 unsigned int water_create_VAO() {
   float heightf = -11.0;
   float waterVertices[] = {
-      -20000.0f,  heightf, -20000.0f,
-      20000.0f,  heightf, -20000.0f,
-      20000.0f,  heightf,  20000.0f,
-      20000.0f,  heightf,  20000.0f,
-      -20000.0f,  heightf,  20000.0f,
-      -20000.0f,  heightf, -20000.0f,
-  };
+      -20000.0f, heightf, -20000.0f, 20000.0f, heightf, -20000.0f, 20000.0f, heightf, 20000.0f, 20000.0f, heightf, 20000.0f, -20000.0f, heightf, 20000.0f, -20000.0f, heightf, -20000.0f,};
 
   unsigned int waterVAO, waterVBO;
   glGenVertexArrays(1, &waterVAO);
@@ -226,9 +144,36 @@ unsigned int water_create_VAO() {
   glBindBuffer(GL_ARRAY_BUFFER, waterVBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(waterVertices), &waterVertices, GL_STATIC_DRAW);
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *) 0);
 
   return waterVAO;
+}
+
+void set_zAtoon(program* program_windfall) {
+  float zAtoon_data[256] = {0};
+  for (unsigned int i = 0; i < 256; ++i) {
+    if (i <= 120)
+      zAtoon_data[i] = 0.0f;
+    else if (i <= 136)
+      zAtoon_data[i] = ((i - 120) * 16) / 256.0f;
+    else
+      zAtoon_data[i] = 1.0f;
+  }
+/*
+for (unsigned int i = 0; i < 256; ++i) {
+  if (i <= 120)
+    zAtoon_data[i] = 0.0f;
+  else if (i <= 136)
+    zAtoon_data[i] = ((i - 120) * 16) / 256.0f;
+  else if (i <= 180)
+    zAtoon_data[i] = ((i - 100) * 2) / 256.0f;
+  else if (i <= 230)
+    zAtoon_data[i] = ((i - 80) * 2) / 256.0f;
+  else
+    zAtoon_data[i] = 1.0f;
+}
+ */
+  program_windfall->set_uniform_vector_float("zAtoon", 256, zAtoon_data);
 }
 
 program *init_program(GLFWwindow *window, const std::string& vertex_shader_filename,
@@ -283,41 +228,18 @@ void display(GLFWwindow *window) {
   unsigned int cubemapTexture = loadSkyBox(program_skybox);
   unsigned int skyboxVAO = skyBox_create_VAO();
   unsigned int waterVAO = water_create_VAO();
+  set_zAtoon(program_windfall);
 
+  //Setup of different default values
+  bool with_lighting = true;
+  bool wireframe = false;
+  bool use_zAtoon = true;
+  float light_ambient = 0.7f;
+  float light_diffuse = 0.8f;
+  float light_dir[3] = {-0.3f, -0.7f, -0.3f};
+  ImVec4 some_color = ImVec4(0.45f, 0.55f, 0.6f, 1.00f);
+  float alpha_clip = 0.3f;
 
-//DirLight
-  program_windfall->set_uniform_vec3("dirLight.direction", -0.3f, -0.7f, -0.3f);
-  program_windfall->set_uniform_vec3("dirLight.ambient",  0.7f);
-  //program_windfall->set_uniform_vec3("dirLight.specular", 0.2f);
-  auto diffuseColor = glm::vec3(0.8f);
-  program_windfall->set_uniform_vec3("dirLight.diffuse", diffuseColor); // darken diffuse light a bit
-  float zAtoon_data[256] = {0};
-  for (unsigned int i = 0; i < 256; ++i) {
-    if (i <= 120)
-      zAtoon_data[i] = 0.0f;
-    else if (i <= 136)
-      zAtoon_data[i] = ((i - 120) * 16) / 256.0f;
-    else
-      zAtoon_data[i] = 1.0f;
-  }
-  /*
-  for (unsigned int i = 0; i < 256; ++i) {
-    if (i <= 120)
-      zAtoon_data[i] = 0.0f;
-    else if (i <= 136)
-      zAtoon_data[i] = ((i - 120) * 16) / 256.0f;
-    else if (i <= 180)
-      zAtoon_data[i] = ((i - 100) * 2) / 256.0f;
-    else if (i <= 230)
-      zAtoon_data[i] = ((i - 80) * 2) / 256.0f;
-    else
-      zAtoon_data[i] = 1.0f;
-  }
-   */
-
-  program_windfall->set_uniform_vector_float("zAtoon", 256, zAtoon_data);
-
-  double lastTime = glfwGetTime();
   while (!glfwWindowShouldClose(window)) {
 
     if (use_im_gui) {
@@ -368,9 +290,15 @@ void display(GLFWwindow *window) {
     program_windfall->set_uniform_mat4("view", view);
     program_windfall->set_uniform_mat4("projection", projection);
     program_windfall->set_uniform_float("alpha_clip", alpha_clip);
+    program_windfall->set_uniform_bool("use_zAtoon", use_zAtoon);
+
+    //program_windfall->set_uniform_vec3("dirLight.direction", -0.3f, -0.7f, -0.3f);
+    program_windfall->set_uniform_vec3("dirLight.direction", light_dir[0], light_dir[1], light_dir[2]);
+
+    program_windfall->set_uniform_vec3("dirLight.ambient",  light_ambient);
+    program_windfall->set_uniform_vec3("dirLight.diffuse", light_diffuse);
 
     model = glm::mat4(1.0f);
-    model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 1.0f, 0.0f));
     model = glm::translate(model, glm::vec3(1.0f, -10.0f, -25.0f));
     model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
     program_windfall->set_uniform_mat4("model", model);
@@ -395,8 +323,13 @@ void display(GLFWwindow *window) {
     if (use_im_gui) {
       ImGui::Begin("Windfall options");
       ImGui::Checkbox("WireFrame", &wireframe);
+      ImGui::Checkbox("Use Zatoon", &use_zAtoon);
       ImGui::Checkbox("Enable lighting", &with_lighting);
       ImGui::SliderFloat("Alpha clip", &alpha_clip, 0.0f, 1.0f);
+      ImGui::SliderFloat("Light diffuse", &light_diffuse, 0.0f, 1.0f);
+      ImGui::SliderFloat("Light ambient", &light_ambient, 0.0f, 1.0f);
+      ImGui::ColorEdit3("Some color", (float*)&some_color);
+      ImGui::SliderFloat3("Light direction", light_dir, -1.0f, 1.0f);
       ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
       ImGui::End();
 

@@ -19,6 +19,7 @@ uniform float zAtoon[256];
 uniform sampler2D texture_diffuse1;
 uniform bool use_color;
 uniform float alpha_clip;
+uniform bool use_zAtoon;
 out vec4 FragColor;
 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 col);
@@ -50,7 +51,10 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 col) {
     // diffuse
     vec3 lightDirection = normalize(-light.direction);
     float coeff = max(dot(normal, lightDirection), 0.0f);
-    coeff = zAtoon[int(coeff * 256.0f)];
+    if (use_zAtoon) {
+        coeff = zAtoon[int(coeff * 256.0f)];
+    }
+
 
     vec3 diffuse = light.diffuse * coeff * col;
 
