@@ -16,6 +16,7 @@ float alpha_clip = 0.3f;
 float rotation = 0;
 bool wireframe = false;
 bool vertex_shifted_along_normal = false;
+bool with_lighting = true;
 float deltaTime_since_last_press = 0.0f;
 float time_of_last_press = 0.0f;
 float displacement = 0.006f;
@@ -74,6 +75,10 @@ void processInput(GLFWwindow *window) {
     time_of_last_press = glfwGetTime();
     vertex_shifted_along_normal = !vertex_shifted_along_normal;
   }
+  if (glfwGetKey(window, GLFW_KEY_L) && deltaTime_since_last_press > 0.2f) {
+    time_of_last_press = glfwGetTime();
+    with_lighting = !with_lighting;
+  }
 }
 
 bool firstMouse = true;
@@ -129,36 +134,7 @@ unsigned int loadCubemap(const std::vector<std::string>& faces)
   return textureID;
 }
 
-program *init_program(GLFWwindow *window, const std::string& vertex_shader_filename,
-                      const std::string& fragment_shader_filename) {
-  program *program = program::make_program(vertex_shader_filename,
-                                           fragment_shader_filename);
-  std::cout << program->get_log();
-  if (!program->is_ready()) {
-    throw "Program is not ready";
-  }
-  program->use();
-  return program;
-}
-
-void display(GLFWwindow *window) {
-
-  //Capture the mouse
-  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-  glfwSetCursorPosCallback(window, mouse_callback);
-  glfwSetScrollCallback(window, scroll_callback);
-
-  program *program_windfall = init_program(window, "shaders/vertex_model.glsl",
-                                  "shaders/fragment_model.glsl");
-  program *program_skybox = init_program(window, "shaders/vertex_skybox.glsl",
-                                         "shaders/fragment_skybox.glsl");
-  program *program_water = init_program(window, "shaders/vertex_water.glsl",
-                                        "shaders/fragment_water.glsl");
-  //stbi_set_flip_vertically_on_load(true);
-  Model windfall("models/Windfall Island/Windfall/Windfall.obj");
-
-  glEnable(GL_DEPTH_TEST);
-  //Skybox
+unsigned int loadSkyBox(program* program) {
 
   std::vector<std::string> faces = {
       "images/skybox/back.jpg",
@@ -169,8 +145,11 @@ void display(GLFWwindow *window) {
       "images/skybox/back.jpg"
   };
   unsigned int cubemapTexture = loadCubemap(faces);
-  program_skybox->set_uniform_int("skybox", 0);
+  program->set_uniform_int("skybox", 0);
+  return cubemapTexture;
+}
 
+unsigned int skyBox_create_VAO() {
   float skyboxVertices[] = {
       // positions
       -1.0f,  1.0f, -1.0f,
@@ -224,15 +203,18 @@ void display(GLFWwindow *window) {
   glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+  return skyboxVAO;
+}
 
+unsigned int water_create_VAO() {
   float heightf = -11.0;
   float waterVertices[] = {
-          -20000.0f,  heightf, -20000.0f,
-          20000.0f,  heightf, -20000.0f,
-          20000.0f,  heightf,  20000.0f,
-          20000.0f,  heightf,  20000.0f,
-          -20000.0f,  heightf,  20000.0f,
-          -20000.0f,  heightf, -20000.0f,
+      -20000.0f,  heightf, -20000.0f,
+      20000.0f,  heightf, -20000.0f,
+      20000.0f,  heightf,  20000.0f,
+      20000.0f,  heightf,  20000.0f,
+      -20000.0f,  heightf,  20000.0f,
+      -20000.0f,  heightf, -20000.0f,
   };
 
   unsigned int waterVAO, waterVBO;
@@ -244,15 +226,65 @@ void display(GLFWwindow *window) {
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
-  /*
+  return waterVAO;
+}
+
+program *init_program(GLFWwindow *window, const std::string& vertex_shader_filename,
+                      const std::string& fragment_shader_filename) {
+  program *program = program::make_program(vertex_shader_filename,
+                                           fragment_shader_filename);
+  std::cout << program->get_log();
+  if (!program->is_ready()) {
+    throw "Program is not ready";
+  }
+  program->use();
+  return program;
+}
+
+void display(GLFWwindow *window) {
+
+  //Capture the mouse
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetCursorPosCallback(window, mouse_callback);
+  glfwSetScrollCallback(window, scroll_callback);
+
+  program *program_windfall;
+  program *program_windfall_without_lighting = init_program(window, "shaders/vertex_model.glsl",
+                                  "shaders/fragment_model.glsl");
+  program *program_windfall_with_lighting = init_program(window, "shaders/vertex_windfall.glsl",
+                                           "shaders/fragment_windfall.glsl");
+  program_windfall = program_windfall_with_lighting;
+  program *program_skybox = init_program(window, "shaders/vertex_skybox.glsl",
+                                         "shaders/fragment_skybox.glsl");
+  program *program_water = init_program(window, "shaders/vertex_water.glsl",
+                                        "shaders/fragment_water.glsl");
+  //stbi_set_flip_vertically_on_load(true);
+  Model windfall("models/Windfall Island/Windfall/Windfall.obj");
+
+  glEnable(GL_DEPTH_TEST);
+  //Skybox
+
+  unsigned int cubemapTexture = loadSkyBox(program_skybox);
+  unsigned int skyboxVAO = skyBox_create_VAO();
+  unsigned int waterVAO = water_create_VAO();
+
+
 //DirLight
   program_windfall->set_uniform_vec3("dirLight.direction", -0.3f, -0.7f, -0.3f);
-  program_windfall->set_uniform_vec3("dirLight.ambient",  2.0f);
-  program_windfall->set_uniform_vec3("dirLight.specular", 0.2f);
-  auto diffuseColor = glm::vec3(1.0f);
+  program_windfall->set_uniform_vec3("dirLight.ambient",  0.7f);
+  //program_windfall->set_uniform_vec3("dirLight.specular", 0.2f);
+  auto diffuseColor = glm::vec3(0.8f);
   program_windfall->set_uniform_vec3("dirLight.diffuse", diffuseColor); // darken diffuse light a bit
   float zAtoon_data[256] = {0};
-
+  for (unsigned int i = 0; i < 256; ++i) {
+    if (i <= 120)
+      zAtoon_data[i] = 0.0f;
+    else if (i <= 136)
+      zAtoon_data[i] = ((i - 120) * 16) / 256.0f;
+    else
+      zAtoon_data[i] = 1.0f;
+  }
+  /*
   for (unsigned int i = 0; i < 256; ++i) {
     if (i <= 120)
       zAtoon_data[i] = 0.0f;
@@ -265,9 +297,10 @@ void display(GLFWwindow *window) {
     else
       zAtoon_data[i] = 1.0f;
   }
+   */
 
   program_windfall->set_uniform_vector_float("zAtoon", 256, zAtoon_data);
-   */
+
   double lastTime = glfwGetTime();
   int nbFrames = 0;
   while (!glfwWindowShouldClose(window)) {
@@ -291,26 +324,11 @@ void display(GLFWwindow *window) {
     glm::mat4 projection = glm::perspective(glm::radians(camera.fov_camera), 800.0f / 600.0f,
                                             0.1f, 1000.0f);
 
-    //Skybox rendering
-    //glDepthMask(GL_FALSE);
-    program_skybox->use();
 
-    glDepthFunc(GL_LEQUAL);
-    glm::mat4 view = glm::mat4(glm::mat3(camera.view_matrix())); // Remove the translation from the view matrix
-    program_skybox->set_uniform_mat4("view", view);
-    program_skybox->set_uniform_mat4("projection", projection);
-    glBindVertexArray(skyboxVAO);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-    glBindVertexArray(0);
-    glDepthFunc(GL_LESS);
-    //glDepthMask(GL_TRUE);
-
-    // Water rendering
+    //------------------ Water rendering-----------------------------
 
     program_water->use();
-    view = camera.view_matrix();
+    glm::mat4 view = camera.view_matrix();
     glm::mat4 model = glm::mat4(1.0f);
     program_water->set_uniform_mat4("view", view);
     program_water->set_uniform_mat4("projection", projection);
@@ -320,18 +338,18 @@ void display(GLFWwindow *window) {
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
 
-
-
-
-    //Windfall rendering
-
+    //--------------------Windfall rendering-----------------------
+    if (with_lighting) {
+      program_windfall = program_windfall_with_lighting;
+    } else {
+      program_windfall = program_windfall_without_lighting;
+    }
     view = camera.view_matrix();
 
     program_windfall->set_uniform_mat4("view", view);
     program_windfall->set_uniform_mat4("projection", projection);
     program_windfall->set_uniform_float("alpha_clip", alpha_clip);
 
-    //program_windfall->set_uniform_vec3("viewPosition", camera.position);
     model = glm::mat4(1.0f);
     model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 1.0f, 0.0f));
     model = glm::translate(model, glm::vec3(1.0f, -10.0f, -25.0f));
@@ -340,6 +358,19 @@ void display(GLFWwindow *window) {
 
     windfall.draw(program_windfall);
 
+//--------------------------Skybox rendering---------------------------
+    program_skybox->use();
+
+    glDepthFunc(GL_LEQUAL);
+    view = glm::mat4(glm::mat3(camera.view_matrix())); // Remove the translation from the view matrix
+    program_skybox->set_uniform_mat4("view", view);
+    program_skybox->set_uniform_mat4("projection", projection);
+    glBindVertexArray(skyboxVAO);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
+    glDepthFunc(GL_LESS);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
