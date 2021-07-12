@@ -132,6 +132,77 @@ unsigned int skyBox_create_VAO() {
   return skyboxVAO;
 }
 
+  std::vector<unsigned int> loadClouds()
+  {
+    std::vector<unsigned int> clouds{};
+
+    std::vector<std::string> files {"images/sprites/bigf_cloud.png",
+                                    "images/sprites/bigf_cloud_mask.png",
+                                    "images/sprites/longf_cloud.png",
+                                    "images/sprites/longf_cloud_mask.png"};
+
+
+    int width, height, nrChannels;
+    unsigned char *data;
+
+    for (const auto &file : files)
+    {
+      unsigned int texture;
+      glGenTextures(1, &texture);
+      glBindTexture(GL_TEXTURE_2D, texture);
+
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+      data = stbi_load(file.c_str(), &width, &height, &nrChannels, 0);
+      if (data)
+      {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+      }
+      else{
+        std::cout << "Failed to load texture" << std::endl;
+      }
+      stbi_image_free(data);
+
+      clouds.emplace_back(texture);
+    }
+    return clouds;
+  }
+
+
+  unsigned int clouds_create_VAO() {
+    float w = -500;
+    float width = 10.0 * 50;
+    float height = 5.0 * 5;
+    float cloudsVertices[] = {
+            // position                tex coords
+            0.0f,  -10.0f, w,    1.0f, 1.0f,
+            width,  -10.0f, w,    0.0f, 1.0f,
+            width,  height, w,    0.0f, 0.0f,
+            width,  height, w,    0.0f, 0.0f,
+            0.0f,  height,w,    1.0f, 0.0f,
+            0.0f,  -10.0f, w,   1.0f, 1.0f,
+    };
+
+    unsigned int cloudsVAO, cloudsVBO;
+    glGenVertexArrays(1, &cloudsVAO);
+    glGenBuffers(1, &cloudsVBO);
+    glBindVertexArray(cloudsVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, cloudsVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cloudsVertices), &cloudsVertices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    return cloudsVAO;
+  }
+
+
 unsigned int water_create_VAO() {
   float heightf = -11.0;
   float waterVertices[] = {
@@ -221,18 +292,25 @@ void display(GLFWwindow *window) {
                                          "shaders/fragment_skybox.glsl");
   program *program_water = init_program(window, "shaders/vertex_water.glsl",
                                         "shaders/fragment_water.glsl");
+  program *program_clouds = init_program(window, "shaders/vertex_clouds.glsl",
+                                         "shaders/fragment_clouds.glsl");
   //stbi_set_flip_vertically_on_load(true);
   Model windfall_flat("models/Windfall Island/Windfall/Windfall_save.obj");
   Model windfall_smooth("models/Windfall Island/Windfall/Windfall.obj");
 
   glEnable(GL_DEPTH_TEST);
+
   //Skybox
 
   unsigned int cubemapTexture = loadSkyBox(program_skybox);
   unsigned int skyboxVAO = skyBox_create_VAO();
+
+  // Water
+
   unsigned int waterVAO = water_create_VAO();
   set_zAtoon(program_windfall);
 
+  // Clouds
   //Setup of different default values
   bool with_lighting = true;
   bool wireframe = false;
@@ -245,7 +323,10 @@ void display(GLFWwindow *window) {
   float light_dir[3] = {-0.3f, -0.7f, -0.3f};
   ImVec4 some_color = ImVec4(0.45f, 0.55f, 0.6f, 1.00f);
   float alpha_clip = 0.3f;
+  float offset = 0.0f;
 
+  std::vector<unsigned int> cloudsTextures = loadClouds();
+  unsigned int cloudsVAO = clouds_create_VAO();
   while (!glfwWindowShouldClose(window)) {
 
     if (use_im_gui) {
@@ -278,6 +359,7 @@ void display(GLFWwindow *window) {
     glBindVertexArray(waterVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
+
 
     //--------------------Windfall rendering-----------------------
 
@@ -316,6 +398,9 @@ void display(GLFWwindow *window) {
       windfall_smooth.draw(program_windfall);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
+
+
+
 //-----------------------Normals------------------------------------
     if (display_normals) {
       shader_normals->set_uniform_mat4("projection", projection);
@@ -340,6 +425,39 @@ void display(GLFWwindow *window) {
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
     glDepthFunc(GL_LESS);
+
+    //------------------ Clouds rendering --------------------------
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    program_clouds->use();
+
+    program_clouds->set_uniform_int("tex_cloud", 0);
+    program_clouds->set_uniform_int("tex_cloud_mask", 1);
+    view = glm::mat4(glm::mat3(camera.view_matrix())); // Remove the translation from the view matrix
+    if (offset > 1.0)
+      offset = -1.0;
+    program_clouds->set_uniform_float("offset", offset);
+
+    model = glm::mat4(1.0f);
+//    view = glm::translate(view, glm::vec3(-offset * 10));
+    program_clouds->set_uniform_mat4("view", view);
+    program_clouds->set_uniform_mat4("projection", projection);
+    program_clouds->set_uniform_float("alpha_clip", alpha_clip);
+    program_clouds->set_uniform_mat4("model", model);
+    program_clouds->set_uniform_vec3("camera_right", camera.right);
+    program_clouds->set_uniform_vec3("camera_up", camera.up);
+    offset += deltaTime / 100;
+//    std::cout <<
+
+
+    glBindVertexArray(cloudsVAO);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, cloudsTextures[2]);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, cloudsTextures[3]);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
 
     if (use_im_gui) {
       ImGui::Begin("Windfall options");
