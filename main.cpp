@@ -4,8 +4,8 @@
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
-unsigned int SRC_WIDTH = 800;
-unsigned int SRC_HEIGHT = 600;
+unsigned int SRC_WIDTH = 800 * 2;
+unsigned int SRC_HEIGHT = 600 * 2;
 
 void error_callback(int error, const char* description)
 {

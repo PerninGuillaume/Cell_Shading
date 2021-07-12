@@ -161,11 +161,11 @@ void display(GLFWwindow *window) {
   //Skybox
 
   std::vector<std::string> faces = {
-      "images/skybox/right.jpg",
-      "images/skybox/left.jpg",
+      "images/skybox/back.jpg",
+      "images/skybox/back.jpg",
       "images/skybox/top.jpg",
-      "images/skybox/bottom.jpg",
-      "images/skybox/front.jpg",
+      "images/skybox/back.jpg",
+      "images/skybox/back.jpg",
       "images/skybox/back.jpg"
   };
   unsigned int cubemapTexture = loadCubemap(faces);
@@ -225,7 +225,7 @@ void display(GLFWwindow *window) {
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
-  float heightf = -10.0;
+  float heightf = -11.0;
   float waterVertices[] = {
           -20000.0f,  heightf, -20000.0f,
           20000.0f,  heightf, -20000.0f,
@@ -289,7 +289,7 @@ void display(GLFWwindow *window) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glm::mat4 projection = glm::perspective(glm::radians(camera.fov_camera), 800.0f / 600.0f,
-                                            0.1f, 100.0f);
+                                            0.1f, 1000.0f);
 
     //Skybox rendering
     //glDepthMask(GL_FALSE);
