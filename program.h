@@ -10,7 +10,8 @@ class program {
 public:
     program();
     ~program();
-    static program *make_program(const std::string &vertex_shader_filename, const std::string &fragment_shader_filename);
+    static program *make_program(const std::string &vertex_shader_filename, const std::string &fragment_shader_filename,
+                                 const std::string &geometry_shader_filename = "");
     std::string get_log();
     bool is_ready();
     void use();

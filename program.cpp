@@ -22,7 +22,8 @@ std::string read_file(std::string filename) {
   return str;
 }
 
-program *program::make_program(const std::string &vertex_shader_filename, const std::string &fragment_shader_filename) {
+program *program::make_program(const std::string &vertex_shader_filename, const std::string &fragment_shader_filename,
+                               const std::string &geometry_shader_filename) {
   const std::string vertex_shader_src = read_file(vertex_shader_filename);
   const std::string fragment_shader_src = read_file(fragment_shader_filename);
   if (vertex_shader_src.empty())
@@ -44,6 +45,16 @@ program *program::make_program(const std::string &vertex_shader_filename, const 
   glShaderSource(my_vertex_shader, 1, &vertex_src, 0);
   glCompileShader(my_vertex_shader);
 
+  if (!geometry_shader_filename.empty()) {
+    const std::string geometry_shader_src = read_file(geometry_shader_filename);
+    if (geometry_shader_src.empty())
+      std::cout << geometry_shader_filename << " is read to be empty !\n";
+    GLuint my_geometry_shader = glCreateShader(GL_GEOMETRY_SHADER);
+    const GLchar *geometry_src = (const GLchar*)geometry_shader_src.c_str();
+    glShaderSource(my_geometry_shader, 1, &geometry_src, 0);
+    glCompileShader(my_geometry_shader);
+    glAttachShader(my_program, my_geometry_shader);
+  }
   glAttachShader(my_program, my_fragment_shader);
   glAttachShader(my_program, my_vertex_shader);
   glLinkProgram(my_program);

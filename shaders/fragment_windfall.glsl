@@ -20,6 +20,7 @@ uniform sampler2D texture_diffuse1;
 uniform bool use_color;
 uniform float alpha_clip;
 uniform bool use_zAtoon;
+uniform bool no_texture;
 out vec4 FragColor;
 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 col);
@@ -36,6 +37,9 @@ void main() {
             discard;
         }
         col = vec3(texColor);
+    }
+    if (no_texture) {
+        col = vec3(0.5f, 0.5f, 0.5f);
     }
     vec3 normal = normalize(Normal);
     vec3 viewDir = normalize(viewPosition - FragPos);

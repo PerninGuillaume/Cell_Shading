@@ -177,9 +177,9 @@ for (unsigned int i = 0; i < 256; ++i) {
 }
 
 program *init_program(GLFWwindow *window, const std::string& vertex_shader_filename,
-                      const std::string& fragment_shader_filename) {
+                      const std::string& fragment_shader_filename, const std::string& geometry_shader_filename = "") {
   program *program = program::make_program(vertex_shader_filename,
-                                           fragment_shader_filename);
+                                           fragment_shader_filename, geometry_shader_filename);
   std::cout << program->get_log();
   if (!program->is_ready()) {
     throw "Program is not ready";
@@ -209,6 +209,8 @@ void display(GLFWwindow *window) {
   ImGui_ImplOpenGL3_Init("#version 450");
   ImGui::StyleColorsDark();
 
+  program *shader_normals = init_program(window, "shaders/vertex_normals.glsl", "shaders/fragment_normals.glsl",
+                                         "shaders/geometry_normals.glsl");
   program *program_windfall;
   program *program_windfall_without_lighting = init_program(window, "shaders/vertex_model.glsl",
                                   "shaders/fragment_model.glsl");
@@ -220,7 +222,8 @@ void display(GLFWwindow *window) {
   program *program_water = init_program(window, "shaders/vertex_water.glsl",
                                         "shaders/fragment_water.glsl");
   //stbi_set_flip_vertically_on_load(true);
-  Model windfall("models/Windfall Island/Windfall/Windfall.obj");
+  Model windfall_flat("models/Windfall Island/Windfall/Windfall_save.obj");
+  Model windfall_smooth("models/Windfall Island/Windfall/Windfall.obj");
 
   glEnable(GL_DEPTH_TEST);
   //Skybox
@@ -234,6 +237,9 @@ void display(GLFWwindow *window) {
   bool with_lighting = true;
   bool wireframe = false;
   bool use_zAtoon = true;
+  bool no_texture = false;
+  bool display_normals = false;
+  bool flat_look = false;
   float light_ambient = 0.7f;
   float light_diffuse = 0.8f;
   float light_dir[3] = {-0.3f, -0.7f, -0.3f};
@@ -291,6 +297,7 @@ void display(GLFWwindow *window) {
     program_windfall->set_uniform_mat4("projection", projection);
     program_windfall->set_uniform_float("alpha_clip", alpha_clip);
     program_windfall->set_uniform_bool("use_zAtoon", use_zAtoon);
+    program_windfall->set_uniform_bool("no_texture", no_texture);
 
     //program_windfall->set_uniform_vec3("dirLight.direction", -0.3f, -0.7f, -0.3f);
     program_windfall->set_uniform_vec3("dirLight.direction", light_dir[0], light_dir[1], light_dir[2]);
@@ -303,8 +310,22 @@ void display(GLFWwindow *window) {
     model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
     program_windfall->set_uniform_mat4("model", model);
 
-    windfall.draw(program_windfall);
+    if (flat_look)
+      windfall_flat.draw(program_windfall);
+    else
+      windfall_smooth.draw(program_windfall);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+//-----------------------Normals------------------------------------
+    if (display_normals) {
+      shader_normals->set_uniform_mat4("projection", projection);
+      shader_normals->set_uniform_mat4("view", view);
+      shader_normals->set_uniform_mat4("model", model);
+      if (flat_look)
+        windfall_flat.draw(shader_normals);
+      else
+        windfall_smooth.draw(shader_normals);
+    }
 
 //--------------------------Skybox rendering---------------------------
     program_skybox->use();
@@ -324,7 +345,10 @@ void display(GLFWwindow *window) {
       ImGui::Begin("Windfall options");
       ImGui::Checkbox("WireFrame", &wireframe);
       ImGui::Checkbox("Use Zatoon", &use_zAtoon);
+      ImGui::Checkbox("No texture", &no_texture);
       ImGui::Checkbox("Enable lighting", &with_lighting);
+      ImGui::Checkbox("Display Normals", &display_normals);
+      ImGui::Checkbox("Flat look", &flat_look);
       ImGui::SliderFloat("Alpha clip", &alpha_clip, 0.0f, 1.0f);
       ImGui::SliderFloat("Light diffuse", &light_diffuse, 0.0f, 1.0f);
       ImGui::SliderFloat("Light ambient", &light_ambient, 0.0f, 1.0f);
