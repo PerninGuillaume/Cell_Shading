@@ -9,8 +9,46 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}")
 find_package(assimp REQUIRED)
 
 find_package(GLM REQUIRED)
-add_executable(TP1 main.cpp matrix4.cpp matrix4.h main.h Vector.cpp Vector3.h program.cpp program.h examples/gouraud.cpp examples/gouraud.h examples/texture.cpp examples/texture.h examples/phong.cpp examples/phong.h examples/coordinates.cpp examples/camera.cpp Camera.cpp Camera.h examples/colors.cpp examples/colors.h examples/light_map.cpp examples/light_map.h examples/multiples_lights.cpp examples/multiples_lights.h Mesh.cpp Mesh.h Model.cpp Model.h examples/backpack.cpp examples/backpack.h examples/link.cpp examples/link.h examples/nordic_village.cpp examples/nordic_village.h examples/cavern.cpp examples/cavern.h examples/isometric_world.cpp examples/isometric_world.cpp examples/isometric_world.h examples/bomb_shop.cpp examples/bomb_shop.h examples/windfall.cpp examples/windfall.h examples/skybox.cpp examples/skybox.h)
+add_executable(TP1
+        main.cpp
+        matrix4.cpp
+        Vector.cpp
+        program.cpp
+        Mesh.cpp
+        Model.cpp
+        Camera.cpp
+        examples/gouraud.cpp
+        examples/texture.cpp
+        examples/phong.cpp
+        examples/coordinates.cpp
+        examples/camera.cpp
+        examples/colors.cpp
+        examples/light_map.cpp
+        examples/multiples_lights.cpp
+        examples/backpack.cpp
+        examples/link.cpp
+        examples/nordic_village.cpp
+        examples/cavern.cpp
+        examples/isometric_world.cpp
+        examples/isometric_world.cpp
+        examples/bomb_shop.cpp
+        examples/windfall.cpp
+        examples/skybox.cpp
+        )
+
+add_executable(imgui_demo
+        imgui_example.cpp
+        imgui-1.83/imgui.cpp
+        imgui-1.83/imgui_demo.cpp
+        imgui-1.83/imgui_draw.cpp
+        imgui-1.83/imgui_tables.cpp
+        imgui-1.83/imgui_widgets.cpp
+        imgui-1.83/backends/imgui_impl_glfw.cpp
+        imgui-1.83/backends/imgui_impl_opengl3.cpp)
 
 target_link_libraries(TP1 -lGLEW -lGL glfw -lX11 -lpthread -lXrandr -ldl -lassimp)
+target_link_libraries(imgui_demo -lGLEW -lGL glfw -lX11 -lpthread -lXrandr -ldl -lassimp)
+
+include_directories(imgui-1.83 imgui-1.83/backends)
 
 target_compile_options(TP1 PRIVATE -Wextra -Wall)
