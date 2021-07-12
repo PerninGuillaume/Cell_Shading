@@ -34,6 +34,13 @@ add_executable(TP1
         examples/bomb_shop.cpp
         examples/windfall.cpp
         examples/skybox.cpp
+        imgui-1.83/imgui.cpp
+        imgui-1.83/imgui_demo.cpp
+        imgui-1.83/imgui_draw.cpp
+        imgui-1.83/imgui_tables.cpp
+        imgui-1.83/imgui_widgets.cpp
+        imgui-1.83/backends/imgui_impl_glfw.cpp
+        imgui-1.83/backends/imgui_impl_opengl3.cpp
         )
 
 add_executable(imgui_demo

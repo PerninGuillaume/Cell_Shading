@@ -5,13 +5,18 @@
 
 #include "../stb_image.h"
 #include "../Model.h"
+#include "imgui.h"
+#include "imgui_impl_opengl3.h"
+#include "imgui_impl_glfw.h"
 
 namespace windfall {
 
+bool use_im_gui = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 float lastXMouse = 800 / 2;
 float lastYMouse = 600 / 2;
+bool right_button_mouse_clicked = false;
 float alpha_clip = 0.3f;
 float rotation = 0;
 bool wireframe = false;
@@ -57,28 +62,12 @@ void processInput(GLFWwindow *window) {
   if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
     displacement -= 0.00001f;
 
-  if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS)
-  {
-    alpha_clip = std::min(1.0f, alpha_clip += 0.01f);
-    std::cout << "alpha_clip = " << alpha_clip << std::endl;
-  }
-
-  if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
-    alpha_clip = std::max(0.0f, alpha_clip -= 0.01f);
-    std::cout << "alpha_clip = " << alpha_clip << std::endl;
-  }
-  if (glfwGetKey(window, GLFW_KEY_P) && deltaTime_since_last_press > 0.2f) {
-    time_of_last_press = glfwGetTime();
-    wireframe = !wireframe;
-  }
+  /*
   if (glfwGetKey(window, GLFW_KEY_N) && deltaTime_since_last_press > 0.2f) {
     time_of_last_press = glfwGetTime();
     vertex_shifted_along_normal = !vertex_shifted_along_normal;
   }
-  if (glfwGetKey(window, GLFW_KEY_L) && deltaTime_since_last_press > 0.2f) {
-    time_of_last_press = glfwGetTime();
-    with_lighting = !with_lighting;
-  }
+   */
 }
 
 bool firstMouse = true;
@@ -94,6 +83,8 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
   lastXMouse = xpos;
   lastYMouse = ypos;
 
+  if (!right_button_mouse_clicked && use_im_gui)
+    return;
   camera.processMouse(xoffset, yoffset);
 }
 
@@ -101,6 +92,17 @@ void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
   camera.processScroll(yoffset);
 }
 
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+  if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    right_button_mouse_clicked = true;
+  }
+  if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) {
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    right_button_mouse_clicked = false;
+  }
+}
 
 unsigned int loadCubemap(const std::vector<std::string>& faces)
 {
@@ -244,9 +246,23 @@ program *init_program(GLFWwindow *window, const std::string& vertex_shader_filen
 void display(GLFWwindow *window) {
 
   //Capture the mouse
-  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  if (use_im_gui) {
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
+  }
+  else
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
   glfwSetCursorPosCallback(window, mouse_callback);
   glfwSetScrollCallback(window, scroll_callback);
+  // Setup Dear ImGui context
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGuiIO& io = ImGui::GetIO(); (void)io;
+  // Setup Platfrom/Renderer bindings
+  ImGui_ImplGlfw_InitForOpenGL(window, true);
+  ImGui_ImplOpenGL3_Init("#version 450");
+  ImGui::StyleColorsDark();
 
   program *program_windfall;
   program *program_windfall_without_lighting = init_program(window, "shaders/vertex_model.glsl",
@@ -302,20 +318,17 @@ void display(GLFWwindow *window) {
   program_windfall->set_uniform_vector_float("zAtoon", 256, zAtoon_data);
 
   double lastTime = glfwGetTime();
-  int nbFrames = 0;
   while (!glfwWindowShouldClose(window)) {
+
+    if (use_im_gui) {
+      ImGui_ImplOpenGL3_NewFrame();
+      ImGui_ImplGlfw_NewFrame();
+      ImGui::NewFrame();
+    }
 
     float currentFrame = glfwGetTime();
     deltaTime = currentFrame - lastFrame;
-    deltaTime_since_last_press = currentFrame - time_of_last_press;
     lastFrame = currentFrame;
-
-    nbFrames++;
-    if ( currentFrame - lastTime >= 1.0 ){
-      std::cout << 1000.0 / nbFrames << " ms/frame" << std::endl;
-      nbFrames = 0;
-      lastTime += 1.0;
-    }
     processInput(window); //input
 
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -339,6 +352,12 @@ void display(GLFWwindow *window) {
     glBindVertexArray(0);
 
     //--------------------Windfall rendering-----------------------
+
+    if (wireframe)
+      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    else
+      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
     if (with_lighting) {
       program_windfall = program_windfall_with_lighting;
     } else {
@@ -357,6 +376,7 @@ void display(GLFWwindow *window) {
     program_windfall->set_uniform_mat4("model", model);
 
     windfall.draw(program_windfall);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 //--------------------------Skybox rendering---------------------------
     program_skybox->use();
@@ -372,10 +392,27 @@ void display(GLFWwindow *window) {
     glBindVertexArray(0);
     glDepthFunc(GL_LESS);
 
+    if (use_im_gui) {
+      ImGui::Begin("Windfall options");
+      ImGui::Checkbox("WireFrame", &wireframe);
+      ImGui::Checkbox("Enable lighting", &with_lighting);
+      ImGui::SliderFloat("Alpha clip", &alpha_clip, 0.0f, 1.0f);
+      ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+      ImGui::End();
+
+      ImGui::Render();
+      ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    }
+
     glfwSwapBuffers(window);
     glfwPollEvents();
 
   }
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
+
+  glfwDestroyWindow(window);
   glfwTerminate();
 
 }
