@@ -41,7 +41,7 @@ add_executable(TP1
         imgui-1.83/imgui_widgets.cpp
         imgui-1.83/backends/imgui_impl_glfw.cpp
         imgui-1.83/backends/imgui_impl_opengl3.cpp
-        )
+        examples/shadow.cpp Shadow.cpp Shadow.h)
 
 add_executable(imgui_demo
         imgui_example.cpp

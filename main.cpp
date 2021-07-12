@@ -42,6 +42,9 @@ GLFWwindow* init_glfw() {
     glfwTerminate();
     return nullptr;
   }
+  int width, height;
+  glfwGetWindowSize(window, &width, &height);
+  std::cout << "Size of window created : " << width << ", " << height << std::endl;
   glfwMakeContextCurrent(window);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   return window;
@@ -62,13 +65,14 @@ int main() {
     //light_map::display(window);
     //multiples_lights::display(window);
     //backpack::display(window);
-    //link::display(window);
+    link::display(window);
     //nordic_village::display(window);
     //cavern::display(window);
     //isometric_world::display(window);
     //bomb_shop::display(window);
-    windfall::display(window);
-//    skybox::display(window);
+    //windfall::display(window);
+  //  skybox::display(window);
+    //shadow::display(window);
   } catch (const char* msg) {
     std::cerr << msg << std::endl;
   }

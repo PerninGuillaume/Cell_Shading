@@ -1,29 +1,18 @@
 #version 450
-
-struct DirLight {
-    vec3 direction;
-
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-};
-
-in vec3 FragPos;
-in vec3 Normal;
-in vec2 TexCoords;
-in vec4 FragPosLightSpace;
-
-uniform DirLight dirLight;
-uniform vec3 viewPosition;
-uniform vec3 color;
-uniform float zAtoon[256];
-uniform bool use_zAtoon;
-
-uniform sampler2D shadowMap;
-
 out vec4 FragColor;
 
-vec3 CalcDirLight(DirLight light, vec3 normal, vec3 col, float shadow);
+in VS_OUT {
+    vec3 FragPos;
+    vec3 Normal;
+    vec2 TexCoords;
+    vec4 FragPosLightSpace;
+} fs_in;
+
+uniform sampler2D diffuseTexture;
+uniform sampler2D shadowMap;
+
+uniform vec3 lightPos;
+uniform vec3 viewPos;
 
 float ShadowCalculation(vec4 fragPosLightSpace)
 {
@@ -32,7 +21,7 @@ float ShadowCalculation(vec4 fragPosLightSpace)
     // transform to [0,1] range
     projCoords = projCoords * 0.5 + 0.5;
     if (projCoords.z > 1.0)
-    return 0.0;
+        return 0.0;
     // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
     float closestDepth = texture(shadowMap, projCoords.xy).r;
     // get depth of current fragment from light's perspective
@@ -61,29 +50,27 @@ float ShadowCalculation(vec4 fragPosLightSpace)
     return shadow;
 }
 
-void main() {
-    vec3 normal = normalize(Normal);
-    float shadow = ShadowCalculation(FragPosLightSpace);
-    vec3 result = CalcDirLight(dirLight, normal, color, shadow);
-
-    FragColor = vec4(result, 1.0f);
-}
-
-vec3 CalcDirLight(DirLight light, vec3 normal, vec3 col, float shadow) {
-    //ambient
-    vec3 ambient = light.ambient * col;
-
+void main()
+{
+    vec3 color = texture(diffuseTexture, fs_in.TexCoords).rgb;
+    vec3 normal = normalize(fs_in.Normal);
+    vec3 lightColor = vec3(0.7);
+    // ambient
+    vec3 ambient = 0.3 * color;
     // diffuse
-    vec3 lightDirection = normalize(-light.direction);
-    float coeff = max(dot(normal, lightDirection), 0.0f);
-    if (use_zAtoon) {
-        coeff = zAtoon[int(coeff * 256.0f)];
-    }
+    vec3 lightDir = normalize(lightPos - fs_in.FragPos);
+    float diff = max(dot(lightDir, normal), 0.0);
+    vec3 diffuse = diff * lightColor;
+    // specular
+    vec3 viewDir = normalize(viewPos - fs_in.FragPos);
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = 0.0;
+    vec3 halfwayDir = normalize(lightDir + viewDir);
+    spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0);
+    vec3 specular = spec * lightColor;
+    // calculate shadow
+    float shadow = ShadowCalculation(fs_in.FragPosLightSpace);
+    vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
 
-    vec3 diffuse = light.diffuse * coeff * col;
-
-    //total
-    vec3 result = ambient + (1.0 - shadow) * diffuse;
-
-    return result;
+    FragColor = vec4(lighting, 1.0);
 }

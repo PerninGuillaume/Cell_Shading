@@ -26,3 +26,4 @@
 #include "examples/bomb_shop.h"
 #include "examples/windfall.h"
 #include "examples/skybox.h"
+#include "examples/shadow.h"
