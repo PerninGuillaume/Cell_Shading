@@ -17,6 +17,7 @@ uniform DirLight dirLight;
 uniform vec3 viewPosition;
 uniform vec3 color;
 uniform float zAtoon[256];
+uniform float alpha_clip;
 uniform bool use_zAtoon;
 uniform bool use_shadow;
 uniform bool use_color;
@@ -70,7 +71,11 @@ void main() {
     if (use_color) {
         col = color;
     } else {
-        col = vec3(texture(texture_diffuse1, TexCoords));
+        vec4 texColor = texture(texture_diffuse1, TexCoords);
+        if (texColor.a < alpha_clip) {
+            discard;
+        }
+        col = vec3(texColor);
     }
     if (no_texture) {
         col = vec3(0.5f);
@@ -80,7 +85,7 @@ void main() {
     if (use_shadow) {
         shadow = ShadowCalculation(FragPosLightSpace);
     }
-    vec3 result = CalcDirLight(dirLight, normal, color, shadow);
+    vec3 result = CalcDirLight(dirLight, normal, col, shadow);
 
     FragColor = vec4(result, 1.0f);
 }

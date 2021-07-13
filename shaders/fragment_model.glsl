@@ -17,7 +17,7 @@ void main()
     {
         vec4 texColor = texture(texture_diffuse1, TexCoords);
         if (texColor.a < alpha_clip)
-        discard;
+            discard;
         FragColor = texColor;
     }
     /*

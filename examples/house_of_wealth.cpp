@@ -72,10 +72,14 @@ void display(GLFWwindow *window) {
 
   program *shader_character = init_program(window, "shaders/vertex_link.glsl",
                                  "shaders/fragment_link.glsl");
-  program *shader_house= init_program(window, "shaders/vertex_model.glsl",
+  program *shader_house_no_light = init_program(window, "shaders/vertex_model.glsl",
                                                             "shaders/fragment_model.glsl");
+  program *shader_house_with_light = init_program(window, "shaders/vertex_windfall.glsl",
+                                      "shaders/fragment_windfall.glsl");
+  program *shader_house = shader_house_with_light;
   //stbi_set_flip_vertically_on_load(true);
   Model house_of_wealth("models/Auction House/model/model1.obj");
+  Model house_of_wealth_smooth("models/Auction House/model/model1_smooth.obj");
   Model link("models/link-cartoon/source/LinkCartoon.fbx");
   Model ganondorf("models/Ganondorf Figurine/133.obj");
 
@@ -90,7 +94,8 @@ void display(GLFWwindow *window) {
   //Setup of different default values
   bool with_lighting = true;
   bool wireframe = false;
-  bool use_zAtoon = true;
+  bool use_zAtoon_house = false;
+  bool use_zAtoon_character = true;
   bool use_shadow = false;
   bool no_texture = false;
   bool display_normals = false;
@@ -99,10 +104,9 @@ void display(GLFWwindow *window) {
   float light_diffuse = 0.8f;
   float light_dir[3] = {-0.3f, -0.7f, -0.3f};
   float link_translation[3] = {0.0f, -0.36f, -3.571f};
-  float ganon_translation[3] = {0.0f, 0.0f, 0.0f};
+  float ganon_translation[3] = {3.55f, -2.0f, -1.2f};
   ImVec4 some_color = ImVec4(0.45f, 0.55f, 0.6f, 1.00f);
   float alpha_clip = 0.3f;
-  float offset = 0.0f;
   Helper helper = Helper(camera, use_im_gui);
 
   while (!glfwWindowShouldClose(window)) {
@@ -135,14 +139,22 @@ void display(GLFWwindow *window) {
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     else
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    if (with_lighting)
+      shader_house = shader_house_with_light;
+    else
+      shader_house = shader_house_no_light;
 
     view = camera->view_matrix();
 
     shader_house->set_uniform_mat4("view", view);
     shader_house->set_uniform_mat4("projection", projection);
     shader_house->set_uniform_float("alpha_clip", alpha_clip);
-    shader_house->set_uniform_bool("use_zAtoon", use_zAtoon);
+    shader_house->set_uniform_bool("use_zAtoon", use_zAtoon_house);
     shader_house->set_uniform_bool("no_texture", no_texture);
+    shader_house->set_uniform_vec3("dirLight.direction", light_dir[0], light_dir[1], light_dir[2]);
+
+    shader_house->set_uniform_vec3("dirLight.ambient",  light_ambient);
+    shader_house->set_uniform_vec3("dirLight.diffuse", light_diffuse);
 
 
     glm::mat4 model = glm::mat4(1.0f);
@@ -150,7 +162,10 @@ void display(GLFWwindow *window) {
     model = glm::scale(model, glm::vec3(8.0f));
     shader_house->set_uniform_mat4("model", model);
 
-    house_of_wealth.draw(shader_house);
+    if (flat_look)
+      house_of_wealth.draw(shader_house);
+    else
+      house_of_wealth_smooth.draw(shader_house);
 
 
     //----------------------Link-----------------------------------------
@@ -162,7 +177,7 @@ void display(GLFWwindow *window) {
     shader_character->set_uniform_mat4("model", model);
     shader_character->set_uniform_mat4("view", view);
     shader_character->set_uniform_mat4("projection", projection);
-    shader_character->set_uniform_bool("use_zAtoon", use_zAtoon);
+    shader_character->set_uniform_bool("use_zAtoon", use_zAtoon_character);
     shader_character->set_uniform_bool("use_shadow", use_shadow);
     shader_character->set_uniform_bool("no_texture", no_texture);
     shader_character->set_uniform_vec3("dirLight.ambient",  light_ambient);
@@ -174,14 +189,16 @@ void display(GLFWwindow *window) {
     //----------------------Ganondorf-----------------------------------------
     model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(ganon_translation[0], ganon_translation[1], ganon_translation[2]));
-    model = glm::scale(model, glm::vec3(2.0f));
+    model = glm::scale(model, glm::vec3(4.0f));
 
     shader_character->set_uniform_mat4("model", model);
     shader_character->set_uniform_mat4("view", view);
     shader_character->set_uniform_mat4("projection", projection);
-    shader_character->set_uniform_bool("use_zAtoon", use_zAtoon);
+    shader_character->set_uniform_bool("use_zAtoon", use_zAtoon_character);
     shader_character->set_uniform_bool("use_shadow", use_shadow);
     shader_character->set_uniform_bool("no_texture", no_texture);
+    shader_character->set_uniform_float("alpha_clip", alpha_clip);
+    //TODO why is the triforce on his hand weird
     shader_character->set_uniform_vec3("dirLight.ambient",  light_ambient);
     shader_character->set_uniform_vec3("dirLight.diffuse", light_diffuse);
 
@@ -191,7 +208,8 @@ void display(GLFWwindow *window) {
       ImGui::Begin("House of Wealth options");
       ImGui::Checkbox("Shadow", &use_shadow);
       ImGui::Checkbox("WireFrame", &wireframe);
-      ImGui::Checkbox("Use Zatoon", &use_zAtoon);
+      ImGui::Checkbox("Use Zatoon for character", &use_zAtoon_character);
+      ImGui::Checkbox("Use Zatoon for the House", &use_zAtoon_house);
       ImGui::Checkbox("No texture", &no_texture);
       ImGui::Checkbox("Enable lighting", &with_lighting);
       ImGui::Checkbox("Display Normals", &display_normals);
