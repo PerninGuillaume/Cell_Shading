@@ -97,7 +97,7 @@ void display(GLFWwindow *window) {
   unsigned int waterVAO = water_create_VAO();
   set_zAtoon(program_windfall);
 
-  // Clouds
+
   //Setup of different default values
   bool with_lighting = true;
   bool wireframe = false;
@@ -123,6 +123,8 @@ void display(GLFWwindow *window) {
   bool ortho_view = false;
   Helper helper = Helper(camera, use_im_gui);
 
+
+  // Clouds
   std::vector<unsigned int> cloudsTextures = loadClouds();
   unsigned int cloudsVAO = clouds_create_VAO();
   while (!glfwWindowShouldClose(window)) {
@@ -291,6 +293,7 @@ void display(GLFWwindow *window) {
     program_clouds->set_uniform_int("tex_cloud", 0);
     program_clouds->set_uniform_int("tex_cloud_mask", 1);
     view = glm::mat4(glm::mat3(camera->view_matrix())); // Remove the translation from the view matrix
+//    view = camera->view_matrix();
     if (offset > 1.0)
       offset = -1.0;
     program_clouds->set_uniform_float("offset", offset);
@@ -312,7 +315,7 @@ void display(GLFWwindow *window) {
     glBindTexture(GL_TEXTURE_2D, cloudsTextures[2]);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, cloudsTextures[3]);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glDrawArrays(GL_TRIANGLES, 0, 6 * 4);
     glBindVertexArray(0);
 
 

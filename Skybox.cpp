@@ -80,7 +80,7 @@ std::vector<unsigned int> loadClouds()
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -103,25 +103,92 @@ std::vector<unsigned int> loadClouds()
 
 
 unsigned int clouds_create_VAO() {
-  float w = -500;
+  float r = -500;
+  std::vector<float> angles = {};
+  for (int i = 0; i < 4; i ++)
+  {
+    angles.push_back(i * 360 / 4);
+  }
+
   float width = 10.0 * 50;
   float height = 5.0 * 5;
-  float cloudsVertices[] = {
-      // position                tex coords
-      0.0f,  -10.0f, w,    1.0f, 1.0f,
-      width,  -10.0f, w,    0.0f, 1.0f,
-      width,  height, w,    0.0f, 0.0f,
-      width,  height, w,    0.0f, 0.0f,
-      0.0f,  height,w,    1.0f, 0.0f,
-      0.0f,  -10.0f, w,   1.0f, 1.0f,
-  };
+
+  std::vector<float> cloudsVerticesV = {};
+
+  for (const auto & angle : angles)
+  {
+
+    float nb = rand() % 50;
+    float nb2 = rand() % 50;
+    std::cout << angle << std::endl;
+    float x_start = (r * cos((angle - nb) * PI / 180.0f));
+    float x_end = (r * cos((angle + nb2) * PI / 180.0f));
+    float y_start = (r * sin((angle - nb) * PI / 180.0f));
+    float y_end = (r * sin((angle + nb2) * PI / 180.0f));
+
+//    std::cout << x_start << " / " << y_start << "  |  " << x_end << " / " << y_end << std::endl;
+
+//    float offset = width / 2;
+//
+
+
+
+//    float x_end = x + offset / 2;
+//    float x_start = x - width / 2;
+
+//    float norm = sqrt(x*x + y*y);
+//    float x_start = x - offset * -y / norm;
+//    float y_start = y - offset * x / norm;
+//    float x_end = x + offset * -y / norm;
+//    float y_end = y + offset * x / norm;
+
+//    float y_end = y + width / 2 * cos(180 - angle_deg);
+//    float y_start = y + width / 2 * sin(180 - angle_deg);
+//    float norm = sqrt(x*x + y*y);
+
+//    x_start = 5;
+//    y_start = 5;
+//    x_end = 10;
+//    y_end = 10;
+//    height = 0;
+
+    std::vector<float> vertices = {
+            // position                tex coords
+            x_start,  -10.0f, y_end,            1.0f, 1.0f,
+            x_end,  -10.0f, y_start,            0.0f, 1.0f,
+            x_end,  height, y_start,            0.0f, 0.0f,
+            x_end,  height, y_start,            0.0f, 0.0f,
+            x_start,  height, y_end,            1.0f, 0.0f,
+            x_start,  -10.0f, y_end,            1.0f, 1.0f
+    };
+
+    cloudsVerticesV.insert(cloudsVerticesV.end(), vertices.begin(), vertices.end());
+  }
+
+
+//  float cloudsVertices[] = {
+//      // position                tex coords
+//      0.0f,  -10.0f, r,    1.0f, 1.0f,
+//      width,  -10.0f, r,    0.0f, 1.0f,
+//      width,  height, r,    0.0f, 0.0f,
+//      width,  height, r,    0.0f, 0.0f,
+//      0.0f,  height,r,    1.0f, 0.0f,
+//      0.0f,  -10.0f, r,   1.0f, 1.0f,
+//
+//      0.0f,  -10.0f, -r,    1.0f, 1.0f,
+//      width,  -10.0f, -r,    0.0f, 1.0f,
+//      width,  height, -r,    0.0f, 0.0f,
+//      width,  height, -r,    0.0f, 0.0f,
+//      0.0f,  height,-r,    1.0f, 0.0f,
+//      0.0f,  -10.0f, -r,   1.0f, 1.0f,
+//  };
 
   unsigned int cloudsVAO, cloudsVBO;
   glGenVertexArrays(1, &cloudsVAO);
   glGenBuffers(1, &cloudsVBO);
   glBindVertexArray(cloudsVAO);
   glBindBuffer(GL_ARRAY_BUFFER, cloudsVBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(cloudsVertices), &cloudsVertices, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, cloudsVerticesV.size() * sizeof(float), cloudsVerticesV.data(), GL_STATIC_DRAW);
 
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
   glEnableVertexAttribArray(0);
