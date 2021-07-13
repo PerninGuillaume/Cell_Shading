@@ -103,54 +103,20 @@ void display(GLFWwindow *window) {
   program *program = init_program(window, "shaders/vertex_model.glsl",
                                   "shaders/fragment_model.glsl");
 
-  //stbi_set_flip_vertically_on_load(true);
-  //Model village("models/isometric_world/scene.gltf");
   Model village("models/Bomb_Shop/Bomb shop.obj");
-  //Model village("models/isometric_world/isometric-world/source/auto.blend.blend");
 
   glEnable(GL_DEPTH_TEST);
   //Capture the mouse
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetCursorPosCallback(window, mouse_callback);
   glfwSetScrollCallback(window, scroll_callback);
-//DirLight
-  program->set_uniform_vec3("dirLight.direction", -0.3f, -0.7f, -0.3f);
-  program->set_uniform_vec3("dirLight.ambient",  2.0f);
-  program->set_uniform_vec3("dirLight.specular", 0.2f);
-  auto diffuseColor = glm::vec3(1.0f);
-  program->set_uniform_vec3("dirLight.diffuse", diffuseColor); // darken diffuse light a bit
-  float zAtoon_data[256] = {0};
-
-  for (unsigned int i = 0; i < 256; ++i) {
-    if (i <= 120)
-      zAtoon_data[i] = 0.0f;
-    else if (i <= 136)
-      zAtoon_data[i] = ((i - 120) * 16) / 256.0f;
-    else if (i <= 180)
-      zAtoon_data[i] = ((i - 100) * 2) / 256.0f;
-    else if (i <= 230)
-      zAtoon_data[i] = ((i - 80) * 2) / 256.0f;
-    else
-      zAtoon_data[i] = 1.0f;
-  }
-
-  program->set_uniform_vector_float("zAtoon", 256, zAtoon_data);
-  double lastTime = glfwGetTime();
-  int nbFrames = 0;
   while (!glfwWindowShouldClose(window)) {
 
     float currentFrame = glfwGetTime();
     deltaTime = currentFrame - lastFrame;
-    deltaTime_since_last_press = currentFrame - time_of_last_press;
     lastFrame = currentFrame;
 
-    nbFrames++;
-    if ( currentFrame - lastTime >= 1.0 ){
-      std::cout << 1000.0 / nbFrames << " ms/frame" << std::endl;
-      nbFrames = 0;
-      lastTime += 1.0;
-    }
-    processInput(window); //input
+   processInput(window); //input
 
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

@@ -27,3 +27,4 @@
 #include "examples/windfall.h"
 #include "examples/skybox.h"
 #include "examples/shadow.h"
+#include "examples/house_of_wealth.h"
