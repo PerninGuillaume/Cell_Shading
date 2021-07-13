@@ -180,6 +180,7 @@ void display(GLFWwindow *window) {
   quad_depth_shader->set_uniform_int("depthMap", 0);
   shader->set_uniform_int("shadowMap", 0);
   bool use_zAtoon = true;
+  bool use_shadow = true;
   bool contour_wireframe= false;
   bool vertex_shifted_along_normal = false;
   float rotation = 0;
@@ -251,6 +252,7 @@ void display(GLFWwindow *window) {
 
     shader->set_uniform_mat4("model", model);
     shader->set_uniform_bool("use_zAtoon", use_zAtoon);
+    shader->set_uniform_bool("use_shadow", use_shadow);
     shader->set_uniform_vec3("dirLight.ambient",  light_ambient);
     shader->set_uniform_vec3("dirLight.diffuse", light_diffuse); // darken diffuse light a bit
     //shader->set_uniform_vec3("viewPos", camera.position);
@@ -299,6 +301,7 @@ void display(GLFWwindow *window) {
 
     if (use_im_gui) {
       ImGui::Begin("Link options");
+      ImGui::Checkbox("Shadow", &use_shadow);
       ImGui::Checkbox("Counter with wireFrame", &contour_wireframe);
       ImGui::Checkbox("Use Zatoon", &use_zAtoon);
       ImGui::Checkbox("Vertex shifted along normal for contour", &vertex_shifted_along_normal);

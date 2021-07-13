@@ -31,7 +31,6 @@ add_executable(TP1
         examples/cavern.cpp
         examples/isometric_world.cpp
         examples/isometric_world.cpp
-        examples/bomb_shop.cpp
         examples/windfall.cpp
         examples/skybox.cpp
         imgui-1.83/imgui.cpp
@@ -46,7 +45,8 @@ add_executable(TP1
         examples/house_of_wealth.cpp
         callback.cpp
         Helper.cpp
-        Skybox.cpp)
+        Skybox.cpp
+        Display_template.cpp)
 
 add_executable(imgui_demo
         imgui_example.cpp

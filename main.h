@@ -9,6 +9,7 @@
 #include "matrix4.h"
 #include "Vector3.h"
 #include "Model.h"
+#include "Display_template.h"
 
 #include "examples/gouraud.h"
 #include "examples/phong.h"
@@ -23,8 +24,8 @@
 #include "examples/nordic_village.h"
 #include "examples/cavern.h"
 #include "examples/isometric_world.h"
-#include "examples/bomb_shop.h"
 #include "examples/windfall.h"
 #include "examples/skybox.h"
 #include "examples/shadow.h"
 #include "examples/house_of_wealth.h"
+

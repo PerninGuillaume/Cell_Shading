@@ -18,7 +18,11 @@ uniform vec3 viewPosition;
 uniform vec3 color;
 uniform float zAtoon[256];
 uniform bool use_zAtoon;
+uniform bool use_shadow;
+uniform bool use_color;
+uniform bool no_texture;
 
+uniform sampler2D texture_diffuse1;
 uniform sampler2D shadowMap;
 
 out vec4 FragColor;
@@ -62,8 +66,20 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 }
 
 void main() {
+    vec3 col = color;
+    if (use_color) {
+        col = color;
+    } else {
+        col = vec3(texture(texture_diffuse1, TexCoords));
+    }
+    if (no_texture) {
+        col = vec3(0.5f);
+    }
     vec3 normal = normalize(Normal);
-    float shadow = ShadowCalculation(FragPosLightSpace);
+    float shadow = 0.0f;
+    if (use_shadow) {
+        shadow = ShadowCalculation(FragPosLightSpace);
+    }
     vec3 result = CalcDirLight(dirLight, normal, color, shadow);
 
     FragColor = vec4(result, 1.0f);
