@@ -24,10 +24,8 @@ std::shared_ptr<Camera> camera = std::make_shared<Camera>(glm::vec3(0.0f, 0.0f, 
 
 void display(GLFWwindow *window) {
 
-  int width, height;
-  glfwGetWindowSize(window, &width, &height);
-  unsigned int SRC_WIDTH = width;
-  unsigned int SRC_HEIGHT = height;
+  int SRC_WIDTH, SRC_HEIGHT;
+  glfwGetWindowSize(window, &SRC_WIDTH, &SRC_HEIGHT);
   //Capture the mouse
   if (use_im_gui) {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
@@ -76,6 +74,7 @@ void display(GLFWwindow *window) {
   bool use_zAtoon_house = false;
   bool use_zAtoon_character = true;
   bool use_shadow = true;
+  bool display_depth_map = false;
   bool no_texture = false;
   bool display_normals = false;
   bool flat_look = false;
@@ -126,7 +125,7 @@ void display(GLFWwindow *window) {
                                             0.1f, 1000.0f);
     glm::mat4 view = camera->view_matrix();
 
-// 1. Render depth of scene to texture (from light's perspective)
+    // 1. Render depth of scene to texture (from light's perspective)
     // --------------------------------------------------------------
     glm::mat4 lightProjection, lightView;
     glm::mat4 lightSpaceMatrix;
@@ -187,7 +186,7 @@ void display(GLFWwindow *window) {
 
     // 2. render scene as normal using the generated depth/shadow map
     // --------------------------------------------------------------
-    
+
     //--------------------House of Wealth rendering-----------------------
 
 
@@ -235,17 +234,20 @@ void display(GLFWwindow *window) {
     ganondorf.draw(shader_character);
 
 
-    quad_depth_shader->use();
-    quad_depth_shader->set_uniform_int("depthMap", 0);
-    quad_depth_shader->set_uniform_float("near_plane", near_plane_light);
-    quad_depth_shader->set_uniform_float("far_plane", far_plane_light);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
-    //renderQuad();
+    if (display_depth_map) {
+      quad_depth_shader->use();
+      quad_depth_shader->set_uniform_int("depthMap", 0);
+      quad_depth_shader->set_uniform_float("near_plane", near_plane_light);
+      quad_depth_shader->set_uniform_float("far_plane", far_plane_light);
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
+      renderQuad();
+    }
 
     if (use_im_gui) {
       ImGui::Begin("House of Wealth options");
       ImGui::Checkbox("Shadow", &use_shadow);
+      ImGui::Checkbox("Depth texture", &display_depth_map);
       ImGui::Checkbox("Peter Paning", &peter_paning);
       ImGui::Checkbox("PCF", &pcf);
       ImGui::SliderFloat("Shadow bias", &shadow_bias, 0.0f, 0.1f);

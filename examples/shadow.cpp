@@ -302,6 +302,7 @@ void display(GLFWwindow* window) {
   shadow_shader->set_uniform_int("diffuseTexture", 0);
   shadow_shader->set_uniform_int("shadowMap", 1);
   quad_depth_shader->set_uniform_int("depthMap", 0);
+  glEnable(GL_CULL_FACE);
   while (!glfwWindowShouldClose(window)) {
 
     float currentFrame = glfwGetTime();
@@ -350,7 +351,7 @@ void display(GLFWwindow* window) {
     glBindTexture(GL_TEXTURE_2D, woodTexture);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
-    //renderScene(shadow_shader, planeVAO);
+    renderScene(shadow_shader, planeVAO);
 
     // render Depth map to quad for visual debugging
     // ---------------------------------------------
@@ -359,7 +360,7 @@ void display(GLFWwindow* window) {
     quad_depth_shader->set_uniform_float("far_plane", far_plane);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
-    renderQuad();
+    //renderQuad();
 
 
     glfwSwapBuffers(window);
