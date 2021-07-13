@@ -325,7 +325,7 @@ void display(GLFWwindow* window) {
     shadow_shader_depth->use();
     shadow_shader_depth->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
 
-    glViewport(0, 0, shadow.SHADOW_WIDTH, shadow.SHADOW_HEIGHT);
+    glViewport(0, 0, shadow.shadow_width, shadow.shadow_height);
     glBindFramebuffer(GL_FRAMEBUFFER, shadow.depthMapFBO);
     glClear(GL_DEPTH_BUFFER_BIT);
     glCullFace(GL_FRONT);//peter panning, works only with solid object

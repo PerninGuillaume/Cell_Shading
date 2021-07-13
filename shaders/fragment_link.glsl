@@ -18,10 +18,12 @@ uniform vec3 viewPosition;
 uniform vec3 color;
 uniform float zAtoon[256];
 uniform float alpha_clip;
+uniform float shadow_bias;
 uniform bool use_zAtoon;
 uniform bool use_shadow;
 uniform bool use_color;
 uniform bool no_texture;
+uniform bool pcf;
 
 uniform sampler2D texture_diffuse1;
 uniform sampler2D shadowMap;
@@ -43,9 +45,7 @@ float ShadowCalculation(vec4 fragPosLightSpace)
     // get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
     // check whether current frag pos is in shadow
-    float bias = 0.005;
     // PCF
-    bool pcf = false;
     float shadow;
     if (pcf) {
         shadow = 0.0;
@@ -55,12 +55,12 @@ float ShadowCalculation(vec4 fragPosLightSpace)
             for (int y = -1; y <= 1; ++y)
             {
                 float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-                shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;
+                shadow += currentDepth - shadow_bias > pcfDepth  ? 1.0 : 0.0;
             }
         }
         shadow /= 9.0f;
     } else {
-        shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
+        shadow = currentDepth - shadow_bias > closestDepth  ? 1.0 : 0.0;
     }
 
     return shadow;

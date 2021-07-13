@@ -57,16 +57,16 @@ void display(GLFWwindow *window) {
                                       "shaders/fragment_link.glsl");
   program *quad_depth_shader = init_program("shaders/vertex_normalized_coord.glsl", "shaders/fragment_quad_depth.glsl");
   program *shader_house = shader_house_with_light;
-  //stbi_set_flip_vertically_on_load(true);
+
   Model house_of_wealth("models/Auction House/model/model1.obj");
   Model house_of_wealth_smooth("models/Auction House/model/model1_smooth.obj");
   Model link("models/link-cartoon/source/LinkCartoon.fbx");
   Model ganondorf("models/Ganondorf Figurine/133.obj");
-  Shadow shadow_link = Shadow();
+
+  unsigned int size_shadow_texture = 4096;
+  Shadow shadow = Shadow(size_shadow_texture, size_shadow_texture);
 
   glEnable(GL_DEPTH_TEST);
-
-
 
   set_zAtoon(shader_character);
 
@@ -79,10 +79,14 @@ void display(GLFWwindow *window) {
   bool no_texture = false;
   bool display_normals = false;
   bool flat_look = false;
+  bool peter_paning = false;
+  bool pcf = false;
+  float shadow_bias = 0.005f;
+  float near_plane_light = 1.0f, far_plane_light = 17.5f;
   float light_ambient = 0.7f;
   float light_diffuse = 0.8f;
   float light_dir[3] = {-0.3f, -0.7f, -0.3f};
-  float light_pos[3] = {-2.0f, 4.0f, -1.0f}; //need a position for shadow
+  float light_pos[3] = {-2.0f, 4.0f, 8.681f}; //need a position for shadow
   float link_translation[3] = {0.0f, -0.36f, -3.571f};
   float ganon_translation[3] = {3.55f, -2.0f, -1.2f};
   ImVec4 some_color = ImVec4(0.45f, 0.55f, 0.6f, 1.00f);
@@ -126,14 +130,13 @@ void display(GLFWwindow *window) {
     // --------------------------------------------------------------
     glm::mat4 lightProjection, lightView;
     glm::mat4 lightSpaceMatrix;
-    float near_plane = 1.0f, far_plane = 17.5f;
-    lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+    lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane_light, far_plane_light);
     lightView = glm::lookAt(glm::vec3(light_pos[0], light_pos[1], light_pos[2]), glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
     lightSpaceMatrix = lightProjection * lightView;
 
 
-    glViewport(0, 0, shadow_link.SHADOW_WIDTH, shadow_link.SHADOW_HEIGHT);
-    glBindFramebuffer(GL_FRAMEBUFFER, shadow_link.depthMapFBO);
+    glViewport(0, 0, shadow.shadow_width, shadow.shadow_height);
+    glBindFramebuffer(GL_FRAMEBUFFER, shadow.depthMapFBO);
     glClear(GL_DEPTH_BUFFER_BIT);
     //Render
 
@@ -146,6 +149,8 @@ void display(GLFWwindow *window) {
     shadow_shader_depth->set_uniform_mat4("model", model_mat_link);
     shadow_shader_depth->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
 
+    if (peter_paning)
+      glCullFace(GL_FRONT);
     link.draw(shadow_shader_depth);
 
     //Render Ganondorf depth on the same texture
@@ -155,6 +160,8 @@ void display(GLFWwindow *window) {
     shadow_shader_depth->set_uniform_mat4("model", model_mat_ganon);
 
     ganondorf.draw(shadow_shader_depth);
+    glCullFace(GL_BACK);//In all cases we cull the face normally (peter paning or not)
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // reset viewport
@@ -163,21 +170,28 @@ void display(GLFWwindow *window) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
+    std::vector<program*> shaders = {shader_house, shader_character};
+    for (const auto& shader : shaders) {
+      shader->set_uniform_mat4("view", view);
+      shader->set_uniform_mat4("projection", projection);
+      shader->set_uniform_float("alpha_clip", alpha_clip);
+      shader->set_uniform_bool("no_texture", no_texture);
+      shader->set_uniform_bool("pcf", pcf);
+      shader->set_uniform_bool("use_shadow", use_shadow);
+      shader->set_uniform_float("shadow_bias", shadow_bias);
+      shader->set_uniform_vec3("dirLight.direction", light_dir[0], light_dir[1], light_dir[2]);
+      shader->set_uniform_vec3("dirLight.ambient",  light_ambient);
+      shader->set_uniform_vec3("dirLight.diffuse", light_diffuse);
 
+    }
+
+    // 2. render scene as normal using the generated depth/shadow map
+    // --------------------------------------------------------------
+    
     //--------------------House of Wealth rendering-----------------------
 
 
-    shader_house->set_uniform_mat4("view", view);
-    shader_house->set_uniform_mat4("projection", projection);
-    shader_house->set_uniform_float("alpha_clip", alpha_clip);
     shader_house->set_uniform_bool("use_zAtoon", use_zAtoon_house);
-    shader_house->set_uniform_bool("no_texture", no_texture);
-    shader_house->set_uniform_bool("use_shadow", use_shadow);
-    shader_house->set_uniform_vec3("dirLight.direction", light_dir[0], light_dir[1], light_dir[2]);
-
-    shader_house->set_uniform_vec3("dirLight.ambient",  light_ambient);
-    shader_house->set_uniform_vec3("dirLight.diffuse", light_diffuse);
-
 
     glm::mat4 model_house = glm::mat4(1.0f);
     model_house = glm::translate(model_house, glm::vec3(0.0f, -2.0f, -2.0f));
@@ -187,7 +201,7 @@ void display(GLFWwindow *window) {
     shader_house->set_uniform_int("shadowMap", 1);
     shader_house->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, shadow_link.depthMapTexture);
+    glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
 
     if (flat_look)
       house_of_wealth.draw(shader_house);
@@ -198,57 +212,45 @@ void display(GLFWwindow *window) {
     //----------------------Link-----------------------------------------
 
 
-    // 2. render scene as normal using the generated depth/shadow map
-    // --------------------------------------------------------------
     shader_character->set_uniform_mat4("model", model_mat_link);
-    shader_character->set_uniform_mat4("view", view);
-    shader_character->set_uniform_mat4("projection", projection);
     shader_character->set_uniform_bool("use_zAtoon", use_zAtoon_character);
-    shader_character->set_uniform_bool("use_shadow", use_shadow);
-    shader_character->set_uniform_bool("no_texture", no_texture);
-    shader_character->set_uniform_vec3("dirLight.ambient",  light_ambient);
-    shader_character->set_uniform_vec3("dirLight.diffuse", light_diffuse);
-    shader_character->set_uniform_vec3("dirLight.direction", light_dir[0], light_dir[1], light_dir[2]);
 
     shader_character->set_uniform_int("shadowMap", 0);
     shader_character->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, shadow_link.depthMapTexture);
+    glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
 
     link.draw(shader_character);
 
 
     //----------------------Ganondorf-----------------------------------------
     shader_character->set_uniform_mat4("model", model_mat_ganon);
-    shader_character->set_uniform_mat4("view", view);
-    shader_character->set_uniform_mat4("projection", projection);
-    shader_character->set_uniform_bool("use_zAtoon", use_zAtoon_character);
-    shader_character->set_uniform_bool("use_shadow", false);
-    shader_character->set_uniform_bool("no_texture", no_texture);
-    shader_character->set_uniform_float("alpha_clip", alpha_clip);
     //TODO why is the triforce on his hand weird
-    shader_character->set_uniform_vec3("dirLight.ambient",  light_ambient);
-    shader_character->set_uniform_vec3("dirLight.diffuse", light_diffuse);
 
     shader_character->set_uniform_int("shadowMap", 1);
     shader_character->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, shadow_link.depthMapTexture);
+    glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
 
     ganondorf.draw(shader_character);
 
 
     quad_depth_shader->use();
     quad_depth_shader->set_uniform_int("depthMap", 0);
-    quad_depth_shader->set_uniform_float("near_plane", near_plane);
-    quad_depth_shader->set_uniform_float("far_plane", far_plane);
+    quad_depth_shader->set_uniform_float("near_plane", near_plane_light);
+    quad_depth_shader->set_uniform_float("far_plane", far_plane_light);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, shadow_link.depthMapTexture);
+    glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
     //renderQuad();
 
     if (use_im_gui) {
       ImGui::Begin("House of Wealth options");
       ImGui::Checkbox("Shadow", &use_shadow);
+      ImGui::Checkbox("Peter Paning", &peter_paning);
+      ImGui::Checkbox("PCF", &pcf);
+      ImGui::SliderFloat("Shadow bias", &shadow_bias, 0.0f, 0.1f);
+      ImGui::SliderFloat("Near plane light frustrum", &near_plane_light, 0.0f, 2.0f);
+      ImGui::SliderFloat("Far plane light frustrum", &far_plane_light, 10.0f, 100.0f);
       ImGui::Checkbox("WireFrame", &wireframe);
       ImGui::Checkbox("Use Zatoon for character", &use_zAtoon_character);
       ImGui::Checkbox("Use Zatoon for the House", &use_zAtoon_house);

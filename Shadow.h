@@ -3,13 +3,13 @@
 
 class Shadow {
  public:
-  Shadow();
+  Shadow(unsigned int shadow_width = 2048, unsigned int shadow_height = 2048);
 
 
   unsigned int generate_depth_map_texture();
   unsigned int generate_depth_map_frame_buffer();
   unsigned int depthMapTexture;
   unsigned int depthMapFBO;
-  unsigned int SHADOW_WIDTH = 1024;
-  unsigned int SHADOW_HEIGHT = 1024;
+  unsigned int shadow_width;
+  unsigned int shadow_height;
 };
