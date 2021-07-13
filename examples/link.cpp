@@ -297,7 +297,7 @@ void display(GLFWwindow *window) {
     quad_depth_shader->set_uniform_float("far_plane", far_plane);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
-    //renderQuad();
+    renderQuad();
 
     if (use_im_gui) {
       ImGui::Begin("Link options");
