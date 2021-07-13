@@ -14,16 +14,16 @@ void main()
     TexCoords = aTexCoords;
 
     mat4 mv = view * model;
-    float d = sqrt(mv[0][0] * mv[0][0] + mv[1][1] * mv[1][1] + mv[2][2] * mv[2][2]);
-    mv[0][0] = d;
+//    float d = sqrt(mv[0][0] * mv[0][0] + mv[1][1] * mv[1][1] + mv[2][2] * mv[2][2]);
+    mv[0][0] = 1;
     mv[0][1] = 0;
     mv[0][2] = 0;
     mv[1][0] = 0;
-    mv[1][1] = d;
+    mv[1][1] = 1;
     mv[1][2] = 0;
     mv[2][0] = 0;
     mv[2][1] = 0;
-    mv[2][2] = d;
+    mv[2][2] = 1;
 
     gl_Position = projection * view * model * vec4(aPos, 1.0);
 }

@@ -1,3 +1,7 @@
+#pragma once
+
+#define PI 3.14159265
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <vector>
