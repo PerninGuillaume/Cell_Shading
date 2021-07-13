@@ -111,7 +111,7 @@ unsigned int clouds_create_VAO() {
   }
 
   float width = 10.0 * 50;
-  float height = 5.0 * 5;
+  float height = 5.0 * 10;
 
   std::vector<float> cloudsVerticesV = {};
 

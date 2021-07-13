@@ -23,7 +23,7 @@ float lastFrame = 0.0f;
 std::shared_ptr<Camera> camera = std::make_shared<Camera>(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 unsigned int water_create_VAO() {
-  float heightf = -11.0;
+  float heightf = -10.05;
   float waterVertices[] = {
       -20000.0f, heightf, -20000.0f, 20000.0f, heightf, -20000.0f, 20000.0f, heightf, 20000.0f, 20000.0f, heightf, 20000.0f, -20000.0f, heightf, 20000.0f, -20000.0f, heightf, -20000.0f,};
 
