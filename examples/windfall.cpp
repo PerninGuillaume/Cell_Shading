@@ -8,6 +8,7 @@
 #include "../Skybox.h"
 #include "../Helper.h"
 #include "../Model.h"
+#include "../misc.h"
 
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"
@@ -37,45 +38,6 @@ unsigned int water_create_VAO() {
   return waterVAO;
 }
 
-void set_zAtoon(program* program_windfall) {
-  float zAtoon_data[256] = {0};
-  for (unsigned int i = 0; i < 256; ++i) {
-    if (i <= 120)
-      zAtoon_data[i] = 0.0f;
-    else if (i <= 136)
-      zAtoon_data[i] = ((i - 120) * 16) / 256.0f;
-    else
-      zAtoon_data[i] = 1.0f;
-  }
-/*
-for (unsigned int i = 0; i < 256; ++i) {
-  if (i <= 120)
-    zAtoon_data[i] = 0.0f;
-  else if (i <= 136)
-    zAtoon_data[i] = ((i - 120) * 16) / 256.0f;
-  else if (i <= 180)
-    zAtoon_data[i] = ((i - 100) * 2) / 256.0f;
-  else if (i <= 230)
-    zAtoon_data[i] = ((i - 80) * 2) / 256.0f;
-  else
-    zAtoon_data[i] = 1.0f;
-}
- */
-  program_windfall->set_uniform_vector_float("zAtoon", 256, zAtoon_data);
-}
-
-program *init_program(GLFWwindow *window, const std::string& vertex_shader_filename,
-                      const std::string& fragment_shader_filename, const std::string& geometry_shader_filename = "") {
-  program *program = program::make_program(vertex_shader_filename,
-                                           fragment_shader_filename, geometry_shader_filename);
-  std::cout << program->get_log();
-  if (!program->is_ready()) {
-    throw "Program is not ready";
-  }
-  program->use();
-  return program;
-}
-
 void display(GLFWwindow *window) {
 
   //Capture the mouse
@@ -97,19 +59,19 @@ void display(GLFWwindow *window) {
   ImGui_ImplOpenGL3_Init("#version 450");
   ImGui::StyleColorsDark();
 
-  program *shader_normals = init_program(window, "shaders/vertex_normals.glsl", "shaders/fragment_normals.glsl",
+  program *shader_normals = init_program("shaders/vertex_normals.glsl", "shaders/fragment_normals.glsl",
                                          "shaders/geometry_normals.glsl");
   program *program_windfall;
-  program *program_windfall_without_lighting = init_program(window, "shaders/vertex_model.glsl",
+  program *program_windfall_without_lighting = init_program("shaders/vertex_model.glsl",
                                   "shaders/fragment_model.glsl");
-  program *program_windfall_with_lighting = init_program(window, "shaders/vertex_windfall.glsl",
+  program *program_windfall_with_lighting = init_program("shaders/vertex_windfall.glsl",
                                            "shaders/fragment_windfall.glsl");
   program_windfall = program_windfall_with_lighting;
-  program *program_skybox = init_program(window, "shaders/vertex_skybox.glsl",
+  program *program_skybox = init_program("shaders/vertex_skybox.glsl",
                                          "shaders/fragment_skybox.glsl");
-  program *program_water = init_program(window, "shaders/vertex_water.glsl",
+  program *program_water = init_program("shaders/vertex_water.glsl",
                                         "shaders/fragment_water.glsl");
-  program *program_clouds = init_program(window, "shaders/vertex_clouds.glsl",
+  program *program_clouds = init_program("shaders/vertex_clouds.glsl",
                                          "shaders/fragment_clouds.glsl");
   //stbi_set_flip_vertically_on_load(true);
   Model windfall_flat("models/Windfall Island/Windfall/Windfall_save.obj");
@@ -131,7 +93,7 @@ void display(GLFWwindow *window) {
   //Setup of different default values
   bool with_lighting = true;
   bool wireframe = false;
-  bool use_zAtoon = true;
+  bool use_zAtoon = false;
   bool no_texture = false;
   bool display_normals = false;
   bool flat_look = false;

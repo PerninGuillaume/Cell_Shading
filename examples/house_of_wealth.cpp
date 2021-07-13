@@ -7,6 +7,7 @@
 #include "../callback.h"
 #include "../Helper.h"
 #include "../Model.h"
+#include "../misc.h"
 
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"
@@ -20,67 +21,6 @@ float lastFrame = 0.0f;
 
 std::shared_ptr<Camera> camera = std::make_shared<Camera>(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
-void set_zAtoon(program* program) {
-  float zAtoon_data[256] = {0};
-
-  for (unsigned int i = 0; i < 256; ++i) {
-    if (i <= 120)
-      zAtoon_data[i] = 0.0f;
-    else if (i <= 136)
-      zAtoon_data[i] = ((i - 120) * 16) / 256.0f;
-    else
-      zAtoon_data[i] = 1.0f;
-  }
-
-  //Lookup table for the coeff variable in the fragment shader
-  //It has the same name as the one used internally by zelda the wind waker
-  program->set_uniform_vector_float("zAtoon", 256, zAtoon_data);
-
-}
-
-program *init_program(GLFWwindow *window, const std::string& vertex_shader_filename,
-                      const std::string& fragment_shader_filename, const std::string& geometry_shader_filename = "") {
-  program *program = program::make_program(vertex_shader_filename,
-                                           fragment_shader_filename, geometry_shader_filename);
-  std::cout << program->get_log();
-  if (!program->is_ready()) {
-    throw "Program is not ready";
-  }
-  program->use();
-  return program;
-}
-
-
-// renderQuad() renders a 1x1 XY quad in NDC
-// -----------------------------------------
-unsigned int quadVAO = 0;
-unsigned int quadVBO;
-void renderQuad()
-{
-  if (quadVAO == 0)
-  {
-    float quadVertices[] = {
-        // positions        // texture Coords
-        -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
-        -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-        1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
-        1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-    };
-    // setup plane VAO
-    glGenVertexArrays(1, &quadVAO);
-    glGenBuffers(1, &quadVBO);
-    glBindVertexArray(quadVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-  }
-  glBindVertexArray(quadVAO);
-  glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-  glBindVertexArray(0);
-}
 
 void display(GLFWwindow *window) {
 
@@ -107,15 +47,15 @@ void display(GLFWwindow *window) {
   ImGui_ImplOpenGL3_Init("#version 450");
   ImGui::StyleColorsDark();
 
-  program *shadow_shader_depth = init_program(window, "shaders/vertex_shadow_depth.glsl",
+  program *shadow_shader_depth = init_program("shaders/vertex_shadow_depth.glsl",
                                               "shaders/fragment_shadow_depth.glsl");
-  program *shader_character = init_program(window, "shaders/vertex_link.glsl",
+  program *shader_character = init_program("shaders/vertex_link.glsl",
                                  "shaders/fragment_link.glsl");
-  program *shader_house_no_light = init_program(window, "shaders/vertex_model.glsl",
+  program *shader_house_no_light = init_program("shaders/vertex_model.glsl",
                                                             "shaders/fragment_model.glsl");
-  program *shader_house_with_light = init_program(window, "shaders/vertex_link.glsl",
+  program *shader_house_with_light = init_program("shaders/vertex_link.glsl",
                                       "shaders/fragment_link.glsl");
-  program *quad_depth_shader = init_program(window, "shaders/vertex_normalized_coord.glsl", "shaders/fragment_quad_depth.glsl");
+  program *quad_depth_shader = init_program("shaders/vertex_normalized_coord.glsl", "shaders/fragment_quad_depth.glsl");
   program *shader_house = shader_house_with_light;
   //stbi_set_flip_vertically_on_load(true);
   Model house_of_wealth("models/Auction House/model/model1.obj");
@@ -161,7 +101,7 @@ void display(GLFWwindow *window) {
     helper.deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
 
-    glfwSetWindowUserPointer(window, &helper);
+    glfwSetWindowUserPointer(window, &helper); //For callbacks, set the pointer to use
     processInput(window); //input
 
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);

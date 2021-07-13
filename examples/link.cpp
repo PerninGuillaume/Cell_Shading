@@ -1,141 +1,29 @@
-#include <iostream>
-
 #include "link.h"
 #include "../stb_image.h"
 #include "../Model.h"
 #include "../Camera.h"
 #include "../Shadow.h"
+#include "../misc.h"
+#include "../callback.h"
 
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_glfw.h"
+#include "../Helper.h"
 
 namespace link {
 
-unsigned int SRC_WIDTH = 800.0f;
-unsigned int SRC_HEIGHT = 600.0f;
 bool use_im_gui = true;
-float deltaTime = 0.0f;
 float lastFrame = 0.0f;
-float lastXMouse = (float)SRC_WIDTH / 2;
-float lastYMouse = (float)SRC_HEIGHT / 2;
-bool right_button_mouse_clicked = false;
 
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+std::shared_ptr<Camera> camera = std::make_shared<Camera>(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
-void processInput(GLFWwindow *window) {
-
-  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-    glfwSetWindowShouldClose(window, true);
-
-  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-    camera.processKeyboard(Camera_Movement::FORWARD, deltaTime);
-  if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-    camera.processKeyboard(Camera_Movement::BACKWARD, deltaTime);
-  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-    camera.processKeyboard(Camera_Movement::LEFT, deltaTime);
-  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-    camera.processKeyboard(Camera_Movement::RIGHT, deltaTime);
-}
-
-bool firstMouse = true;
-void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
-  if (firstMouse) {
-    lastXMouse = xpos;
-    lastYMouse = ypos;
-    firstMouse = false;
-  }
-
-  double xoffset = xpos - lastXMouse;
-  double yoffset = lastYMouse - ypos;
-  lastXMouse = xpos;
-  lastYMouse = ypos;
-
-  if (!right_button_mouse_clicked && use_im_gui)
-    return;
-  camera.processMouse(xoffset, yoffset);
-}
-
-void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
-  camera.processScroll(yoffset);
-}
-
-void mouse_button_callback(GLFWwindow *window, int button, int action, int mods) {
-  if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    right_button_mouse_clicked = true;
-  }
-  if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) {
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    right_button_mouse_clicked = false;
-  }
-}
-
-void set_zAtoon(program* program) {
-  float zAtoon_data[256] = {0};
-
-  for (unsigned int i = 0; i < 256; ++i) {
-    if (i <= 120)
-      zAtoon_data[i] = 0.0f;
-    else if (i <= 136)
-      zAtoon_data[i] = ((i - 120) * 16) / 256.0f;
-    else
-      zAtoon_data[i] = 1.0f;
-  }
-
-  //Lookup table for the coeff variable in the fragment shader
-  //It has the same name as the one used internally by zelda the wind waker
-  program->set_uniform_vector_float("zAtoon", 256, zAtoon_data);
-
-}
-
-program *init_program(GLFWwindow *window, const std::string& vertex_shader_filename,
-                      const std::string& fragment_shader_filename) {
-  program *program = program::make_program(vertex_shader_filename,
-                                           fragment_shader_filename);
-  std::cout << program->get_log();
-  if (!program->is_ready()) {
-    throw "Program is not ready";
-  }
-  program->use();
-  return program;
-}
-// renderQuad() renders a 1x1 XY quad in NDC
-// -----------------------------------------
-unsigned int quadVAO = 0;
-unsigned int quadVBO;
-void renderQuad()
-{
-  if (quadVAO == 0)
-  {
-    float quadVertices[] = {
-        // positions        // texture Coords
-        -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
-        -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-        1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
-        1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-    };
-    // setup plane VAO
-    glGenVertexArrays(1, &quadVAO);
-    glGenBuffers(1, &quadVBO);
-    glBindVertexArray(quadVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-  }
-  glBindVertexArray(quadVAO);
-  glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-  glBindVertexArray(0);
-}
 void display(GLFWwindow *window) {
 
   int width, height;
   glfwGetWindowSize(window, &width, &height);
-  SRC_WIDTH = width;
-  SRC_HEIGHT = height;
+  unsigned int SRC_WIDTH = width;
+  unsigned int SRC_HEIGHT = height;
 
   if (use_im_gui) {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
@@ -155,14 +43,14 @@ void display(GLFWwindow *window) {
   ImGui_ImplOpenGL3_Init("#version 450");
   ImGui::StyleColorsDark();
 
-  program *shader = init_program(window, "shaders/vertex_link.glsl",
+  program *shader = init_program("shaders/vertex_link.glsl",
                                       "shaders/fragment_link.glsl");
-  program *programOutline = init_program(window, "shaders/vertex_scale_up.glsl",
+  program *programOutline = init_program("shaders/vertex_scale_up.glsl",
                                          "shaders/fragment_black.glsl");
-  program *shadow_shader_depth = init_program(window, "shaders/vertex_shadow_depth.glsl",
+  program *shadow_shader_depth = init_program("shaders/vertex_shadow_depth.glsl",
                                               "shaders/fragment_shadow_depth.glsl");
 
-  program *quad_depth_shader = init_program(window, "shaders/vertex_normalized_coord.glsl", "shaders/fragment_quad_depth.glsl");
+  program *quad_depth_shader = init_program("shaders/vertex_normalized_coord.glsl", "shaders/fragment_quad_depth.glsl");
   std::vector<program*> programs = {shader, programOutline};
 
   Model link("models/link-cartoon/source/LinkCartoon.fbx");
@@ -187,6 +75,7 @@ void display(GLFWwindow *window) {
   float displacement = 0.006f;
   float light_diffuse = 1.0f;
   float light_ambient = 0.5f;
+  Helper helper = Helper(camera, use_im_gui);
 
   while (!glfwWindowShouldClose(window)) {
     if (use_im_gui) {
@@ -196,9 +85,10 @@ void display(GLFWwindow *window) {
     }
 
     float currentFrame = glfwGetTime();
-    deltaTime = currentFrame - lastFrame;
+    helper.deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
 
+    glfwSetWindowUserPointer(window, &helper); //For callbacks, set the pointer to use
     processInput(window); //input
 
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -239,9 +129,9 @@ void display(GLFWwindow *window) {
 
     // 2. render scene as normal using the generated depth/shadow map
     // --------------------------------------------------------------
-    glm::mat4 projection = glm::perspective(glm::radians(camera.fov_camera), (float)SRC_WIDTH / (float)SRC_HEIGHT,
+    glm::mat4 projection = glm::perspective(glm::radians(camera->fov_camera), (float)SRC_WIDTH / (float)SRC_HEIGHT,
                                             0.1f, 100.0f);
-    glm::mat4 view = camera.view_matrix();
+    glm::mat4 view = camera->view_matrix();
 
     for (auto prg : programs)
     {
@@ -255,14 +145,14 @@ void display(GLFWwindow *window) {
     shader->set_uniform_bool("use_shadow", use_shadow);
     shader->set_uniform_vec3("dirLight.ambient",  light_ambient);
     shader->set_uniform_vec3("dirLight.diffuse", light_diffuse); // darken diffuse light a bit
-    //shader->set_uniform_vec3("viewPos", camera.position);
+    //shader->set_uniform_vec3("viewPos", camera->position);
     shader->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
 
 
 
-    std::vector<glm::vec3> offset_vecs{camera.right, -camera.right, camera.up, -camera.up};
+    std::vector<glm::vec3> offset_vecs{camera->right, -camera->right, camera->up, -camera->up};
 
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
@@ -297,7 +187,7 @@ void display(GLFWwindow *window) {
     quad_depth_shader->set_uniform_float("far_plane", far_plane);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
-    renderQuad();
+    //renderQuad();
 
     if (use_im_gui) {
       ImGui::Begin("Link options");

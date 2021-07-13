@@ -46,7 +46,8 @@ add_executable(TP1
         callback.cpp
         Helper.cpp
         Skybox.cpp
-        Display_template.cpp)
+        Display_template.cpp
+        misc.cpp)
 
 add_executable(imgui_demo
         imgui_example.cpp
