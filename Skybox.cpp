@@ -120,7 +120,7 @@ unsigned int clouds_create_VAO() {
 
     float nb = rand() % 50;
     float nb2 = rand() % 50;
-    std::cout << angle << std::endl;
+//    std::cout << angle << std::endl;
     float x_start = (r * cos((angle - nb) * PI / 180.0f));
     float x_end = (r * cos((angle + nb2) * PI / 180.0f));
     float y_start = (r * sin((angle - nb) * PI / 180.0f));

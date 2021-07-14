@@ -36,7 +36,7 @@ GLFWwindow* init_glfw() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
   glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
   //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  GLFWwindow* window = glfwCreateWindow(SRC_WIDTH, SRC_HEIGHT, "LearnOpenGL", NULL, NULL);
+  GLFWwindow* window = glfwCreateWindow(SRC_WIDTH, SRC_HEIGHT, "The legend of POGL", NULL, NULL);
   if (window == NULL) {
     std::cout << "Failed to create GLFW window." << std::endl;
     glfwTerminate();
