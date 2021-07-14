@@ -46,12 +46,27 @@ struct {
   float offset_water = 0.0f;
   float ortho_bounds[4] = {-50.0f, 50.0f, -60.0f, 70.0f};
   bool ortho_view = false;
+  ImVec4 color_border = ImVec4(243.0f / 255.0f, 106.0f / 255.0f, 65.0f / 255.0f, 1.0f);
+  ImVec4 color_center = ImVec4(246 / 255.0f, 197 / 255.0f, 193 / 255.0f, 1.0f);
+  //ImVec4 color_inner_ring = ImVec4(1.0f, 1.0f, 0.9f, 1.0f);
+  ImVec4 color_gradient = ImVec4(146 / 255.0f, 145 / 255.0f, 7 / 255.0f, 1.0f);
+  float sun_magnification = 330.0f;
 } params;
 
 void set_im_gui_options() {
 
   if (use_im_gui) {
     ImGui::Begin("Windfall options");
+    if (ImGui::TreeNode("Sun")) {
+      ImGui::ColorPicker3("Border", (float*)&params.color_border);
+      ImGui::ColorPicker3("Center", (float*)&params.color_center);
+      //ImGui::ColorPicker3("Inner ring", (float*)&params.color_inner_ring);
+      ImGui::ColorPicker3("Gradient", (float*)&params.color_gradient);
+      ImGui::SliderFloat("Sun magnification", &params.sun_magnification, 0.0f, 1000.0f);
+
+      ImGui::TreePop();
+      ImGui::Separator();
+    }
     if (ImGui::TreeNode("Lighting")) {
       ImGui::Checkbox("Enable lighting", &params.with_lighting);
       ImGui::SliderFloat("Light diffuse", &params.light_diffuse, 0.0f, 1.0f);
@@ -112,6 +127,24 @@ unsigned int water_create_VAO() {
   return waterVAO;
 }
 
+std::vector<unsigned int> loadSunTextures()
+{
+  std::vector<unsigned int> sun_textures{};
+
+  std::vector<std::string> files {
+     "images/sprites/sun_border.png",
+     "images/sprites/sun_eclat.png",
+      "images/sprites/sun_center.png",
+      "images/sprites/sun_inner_ring.png",
+      "images/sprites/sun_gradient.png"
+  };
+
+for (const auto &file : files) {
+    sun_textures.emplace_back(load_image(file));
+  }
+  return sun_textures;
+}
+
 std::vector<unsigned int> loadShore()
 {
   std::vector<unsigned int> shore{};
@@ -122,57 +155,56 @@ std::vector<unsigned int> loadShore()
                                   "images/sprites/shore_limit_wave.png",
                                   "images/sprites/shore_mask.png"};
 
-  int width, height, nrChannels;
-  unsigned char *data;
-
   for (const auto &file : files)
   {
-    unsigned int texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    data = stbi_load(file.c_str(), &width, &height, &nrChannels, 0);
-    if (data)
-    {
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-      glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else{
-      std::cout << "Failed to load texture" << std::endl;
-    }
-    stbi_image_free(data);
-
-    shore.emplace_back(texture);
+    shore.emplace_back(load_image(file));
   }
   return shore;
 }
 
 unsigned int shore_create_VAO() {
 
+  std::vector<glm::vec3> points = {
+      glm::vec3 (-2042.0f, 0.0f, 2800.0f),
+      glm::vec3 (-2822.0f, 0.0f, 2894.0f),
+      glm::vec3 (-2822.0f, 0.0f, 3107.0f),
+      glm::vec3 (-2042.0f, 0.0f, 3012.0f),
+
+      glm::vec3(-1347.0f, 0.0f, 2318.0f),
+      glm::vec3 (-2042.0f, 0.0f, 2800.0f),
+      glm::vec3 (-2042.0f, 0.0f, 3013.0f),
+      glm::vec3(-1347.0f, 0.0f, 2529.0f),
+
+  };
+  glm::mat4 model_mat_windfall = glm::mat4(1.0f);
+  model_mat_windfall = glm::translate(model_mat_windfall, glm::vec3(1.0f, -10.0f, -25.0f));
+  model_mat_windfall = glm::scale(model_mat_windfall, glm::vec3(0.01f, 0.01f, 0.01f));
+  for (int i = 0; i < points.size(); ++i) {
+    points[i] = model_mat_windfall * glm::vec4(points[i], 1.0f);
+  }
+
   float heightf = -10.05f;
-  float xmin = -25.0f;
-  float xmax = -70.0f;
-  float ymin = -55.0f;
-  float ymax = -25.0f;
-  float shoreVertices[] = {
-          xmax, heightf, ymax,  0.0f, 0.0f,
-          xmin, heightf, ymax, 1.0f, 0.0f,
-          xmin, heightf, ymin,  1.0f, 1.0f,
-          xmin, heightf, ymin,  1.0f, 1.0f,
-          xmax, heightf, ymin, 0.0f, 1.0f,
-          xmax, heightf, ymax, 0.0f, 0.0f};
+  std::vector<float> shoreVertices = {};
+  for (int i = 0; i < points.size(); i += 4) {
+    std::vector<float> shoreVertices_quad = {
+        points[i + 1].x, heightf, points[i + 1].z, 0.0f, 0.0f,
+        points[i + 2].x, heightf, points[i + 2].z, 0.0f, 1.0f,
+        points[i].x, heightf, points[i].z, 1.0f, 0.0f,
+
+        points[i + 3].x, heightf, points[i + 3].z, 1.0f, 1.0f,
+        points[i].x, heightf, points[i].z, 1.0f, 0.0f,
+        points[i + 2].x, heightf, points[i + 2].z, 0.0f, 1.0f
+    };
+    shoreVertices.insert(shoreVertices.end(), shoreVertices_quad.begin(), shoreVertices_quad.end());
+  }
+
 
   unsigned int shoreVAO, shoreVBO;
   glGenVertexArrays(1, &shoreVAO);
   glGenBuffers(1, &shoreVBO);
   glBindVertexArray(shoreVAO);
   glBindBuffer(GL_ARRAY_BUFFER, shoreVBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(shoreVertices), &shoreVertices, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, shoreVertices.size() * sizeof(float), shoreVertices.data(), GL_STATIC_DRAW);
 
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *) 0);
   glEnableVertexAttribArray(0);
@@ -183,24 +215,19 @@ unsigned int shore_create_VAO() {
 }
 
 unsigned int sun_create_VAO() {
-  float x_start = -0.5f;
-  float y_start = -0.5f;
-  float x_end = 0.5f;
-  float y_end = 0.5f;
-  float height = 10.0f;
+  float x_start = -50.0f;
+  float y_start = -50.0f;
+  float x_end = 50.0f;
+  float y_end = 50.0f;
+  float height = 500.0f;
   float sunVertices[] = {
-      x_start,  height, y_start,           // 1.0f, 1.0f,
-      x_end, height, y_start,           // 0.0f, 1.0f,
-      x_end, height,  y_end,           // 0.0f, 0.0f,
+      x_end,  height, y_end,  0.0f, 0.0f,
+      x_start, height, y_end,     1.0f, 0.0f,
+      x_start, height,  y_start,      1.0f, 1.0f,
 
-      x_start,  height, y_start,           // 1.0f, 1.0f,
-      x_end, height,  y_end,           // 0.0f, 0.0f,
-      x_start, height, y_end,           // 0.0f, 1.0f,
-      /*
-      x_start,  y_start, 0.0f,            1.0f, 1.0f,
-      x_end,  y_end, 0.0f,            0.0f, 0.0f,
-      x_start, y_end, 0.0f,            1.0f, 0.0f
-       */
+      x_start,  height, y_start,  1.0f, 1.0f,
+      x_end, height,  y_start,      0.0f, 1.0f,
+      x_end, height, y_end,     0.0f, 0.0f,
   };
   unsigned int sunVAO, sunVBO;
   glGenVertexArrays(1, &sunVAO);
@@ -209,10 +236,10 @@ unsigned int sun_create_VAO() {
   glBindBuffer(GL_ARRAY_BUFFER, sunVBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(sunVertices), &sunVertices, GL_STATIC_DRAW);
 
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-//  glEnableVertexAttribArray(1);
-//  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+  glEnableVertexAttribArray(1);
 
   return sunVAO;
 
@@ -286,6 +313,7 @@ void display(GLFWwindow *window) {
   set_zAtoon(program_windfall);
 
   // Sun
+  std::vector<unsigned int> sun_textures = loadSunTextures();
   unsigned int sunVAO = sun_create_VAO();
 
 
@@ -483,28 +511,52 @@ void display(GLFWwindow *window) {
 
 
     glBindVertexArray(shoreVAO);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, shoreTextures[0]);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, shoreTextures[1]);
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, shoreTextures[2]);
-    glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_2D, shoreTextures[3]);
+    for (int i = 0; i < shoreTextures.size(); ++i) {
+      glActiveTexture(GL_TEXTURE0 + i);
+      glBindTexture(GL_TEXTURE_2D, shoreTextures[i]);
+    }
 
-    glDrawArrays(GL_TRIANGLES, 0, 6 * 1);
+    int number_of_waves = 2;
+    glDrawArrays(GL_TRIANGLES, 0, 6 * number_of_waves);
 
     //------------------ Sun rendering --------------------------
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+
     glm::mat4 model_mat_sun = glm::mat4(1.0f);
     model_mat_sun = glm::scale(model_mat_sun, glm::vec3(1.0f));
     program_sun->set_uniform_mat4("model", model_mat_sun);
     glm::mat4 view_mat_sun = glm::mat4(glm::mat3(camera->view_matrix()));
+
+    float alignment = glm::dot(camera->front, glm::vec3(0.0f, 1.0f, 0.0f));
+
+    float alignment_limit = 0.9f;
+    if (alignment > alignment_limit) {
+      float translation = -(alignment - alignment_limit) * 10 * params.sun_magnification;
+      view_mat_sun = glm::translate(view_mat_sun, glm::vec3(0.0f, translation, 0.0f));
+    }
     //glm::mat4 view_mat_sun = camera->view_matrix();
     program_sun->set_uniform_mat4("view", view_mat_sun);
     program_sun->set_uniform_mat4("projection", projection);
-    program_sun->set_uniform_bool("use_color", true);
-    program_sun->set_uniform_vec3("color", 1.0f, 0.0f, 0.0f);
+    program_sun->set_uniform_vec3("color_border", params.color_border.x, params.color_border.y, params.color_border.z);
+    program_sun->set_uniform_vec3("color_center", params.color_center.x, params.color_center.y, params.color_center.z);
+    //program_sun->set_uniform_vec3("color_inner_ring", params.color_inner_ring.x, params.color_inner_ring.y, params.color_inner_ring.z);
+    program_sun->set_uniform_vec3("color_gradient", params.color_gradient.x, params.color_gradient.y, params.color_gradient.z);
+
+    program_sun->set_uniform_int("sun_border", 0);
+    program_sun->set_uniform_int("sun_eclat", 1);
+    program_sun->set_uniform_int("sun_center", 2);
+    program_sun->set_uniform_int("sun_inner_ring", 3);
+    program_sun->set_uniform_int("sun_gradient", 4);
+
     glBindVertexArray(sunVAO);
+
+    for (int i = 0; i < sun_textures.size(); ++i) {
+      glActiveTexture(GL_TEXTURE0 + i);
+      glBindTexture(GL_TEXTURE_2D, sun_textures[i]);
+    }
+
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
 
@@ -554,8 +606,6 @@ void display(GLFWwindow *window) {
       renderQuad();
     }
 
-    //std::cout << "Camera Position : " << camera->position.x << ' ' << camera->position.y << ' ' << camera->position.z << std::endl;
-    //std::cout << "Camera up : " << camera->up.x << ' ' << camera->up.y << ' ' << camera->up.z << std::endl;
     set_im_gui_options();
 
     glfwSwapBuffers(window);

@@ -1,5 +1,6 @@
 #include <iostream>
 #include "misc.h"
+#include "stb_image.h"
 
 void set_zAtoon(program* program) {
   float zAtoon_data[256] = {0};
@@ -74,4 +75,30 @@ void renderQuad()
   glBindVertexArray(quadVAO);
   glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
   glBindVertexArray(0);
+}
+
+unsigned int load_image(const std::string& file) {
+  int width, height, nrChannels;
+  unsigned char *data;
+
+  unsigned int texture;
+  glGenTextures(1, &texture);
+  glBindTexture(GL_TEXTURE_2D, texture);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  data = stbi_load(file.c_str(), &width, &height, &nrChannels, 0);
+  if (data)
+  {
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+  }
+  else{
+    std::cerr << "Failed to load texture" << std::endl;
+  }
+  stbi_image_free(data);
+  return texture;
 }

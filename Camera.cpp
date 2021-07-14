@@ -63,6 +63,7 @@ void Camera::processMouse(float xoffset, float yoffset) {
     pitch = max_pitch;
   if (pitch < -max_pitch)
     pitch = -max_pitch;
+
   refresh_vectors();
 
 }
