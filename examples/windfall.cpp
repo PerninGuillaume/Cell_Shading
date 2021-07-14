@@ -330,8 +330,8 @@ void display(GLFWwindow *window) {
       renderQuad();
     }
 
-    std::cout << "Camera Position : " << camera->position.x << ' ' << camera->position.y << ' ' << camera->position.z << std::endl;
-    std::cout << "Camera up : " << camera->up.x << ' ' << camera->up.y << ' ' << camera->up.z << std::endl;
+    //std::cout << "Camera Position : " << camera->position.x << ' ' << camera->position.y << ' ' << camera->position.z << std::endl;
+    //std::cout << "Camera up : " << camera->up.x << ' ' << camera->up.y << ' ' << camera->up.z << std::endl;
 
     if (use_im_gui) {
       ImGui::Begin("Windfall options");

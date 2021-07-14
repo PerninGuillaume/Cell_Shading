@@ -15,7 +15,6 @@ class Model {
   std::string directory;
   std::vector<Texture> textures_loaded;//To avoid loading multiples times the same image
  private:
-  bool not_printed_before = true;
   void loadModel(const std::string& path);
   void processNode(aiNode* node, const aiScene* scene);
   Mesh processMesh(aiMesh* mesh, const aiScene* scene);

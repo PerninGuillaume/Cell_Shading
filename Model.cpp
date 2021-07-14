@@ -80,43 +80,19 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene) {
   //Textures coordinates
   if (mesh->mMaterialIndex >= 0) {
     aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-    if (not_printed_before) {
-      not_printed_before = false;
-      for (unsigned int index = 0; index < material->mNumProperties; ++index) {
-        auto material_property = material->mProperties[index];
-        std::cout << material_property->mKey.C_Str() << std::endl;
-        auto data = material_property->mData;
-        std::cout << data;
-      }
-    }
+
     std::vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, TextureType::DIFFUSE);
     textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
 
     material->Get(AI_MATKEY_COLOR_DIFFUSE,color);
-    float opacity;
-    //material->Get("mat.gltf.alphaCutOff", opacity);
-    //std::cout << opacity << std::endl;
-    //material->Get(AI_MATKEY_COLOR_SPECULAR,color);
-    //material->Get(AI_MATKEY_COLOR_AMBIENT,color);
 
     std::vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, TextureType::SPECULAR);
     textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
-    // 3. normal maps
-    /*
-    std::vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, TextureType::NORMAL);
-    textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
-    // 4. height maps
-    std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
-    textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
-     */
+
   }
   glm::vec3 color_glm = glm::vec3(color.r, color.g, color.b);
-  if (color_glm.r != 0 || color_glm.g != 0 || color_glm.b != 0) {
-    std::cout << "Color found in material : " << color_glm.r << ' ' << color_glm.g << ' ' << color_glm.b << std::endl;
-  }
   if (!textures.empty()) {
     use_color = false;
-    std::cout << "Found at least one texture" << std::endl;
   }
   return Mesh(vertices, indices, textures, color_glm, use_color);
 }
@@ -149,7 +125,7 @@ std::vector<Texture> Model::loadMaterialTextures(aiMaterial *material, aiTexture
 unsigned int loadTexture(const std::string& path, const std::string& directory)
 {
   std::string filename = directory + '/' + path;
-  std::cout << "Trying to load texture : " << filename << std::endl;
+  //std::cout << "Trying to load texture : " << filename << std::endl;
 
   unsigned int textureID;
   glGenTextures(1, &textureID);
