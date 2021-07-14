@@ -93,7 +93,12 @@ void set_im_gui_options() {
 unsigned int water_create_VAO() {
   float heightf = -11;
   float waterVertices[] = {
-      -20000.0f, heightf, -20000.0f, 20000.0f, heightf, -20000.0f, 20000.0f, heightf, 20000.0f, 20000.0f, heightf, 20000.0f, -20000.0f, heightf, 20000.0f, -20000.0f, heightf, -20000.0f,};
+      -20000.0f, heightf, -20000.0f,
+      20000.0f, heightf, -20000.0f,
+      20000.0f, heightf, 20000.0f,
+      20000.0f, heightf, 20000.0f,
+      -20000.0f, heightf, 20000.0f,
+      -20000.0f, heightf, -20000.0f,};
 
   unsigned int waterVAO, waterVBO;
   glGenVertexArrays(1, &waterVAO);
@@ -116,7 +121,6 @@ std::vector<unsigned int> loadShore()
                                   "images/sprites/shore_black_wave.png",
                                   "images/sprites/shore_limit_wave.png",
                                   "images/sprites/shore_mask.png"};
-
 
   int width, height, nrChannels;
   unsigned char *data;
@@ -178,6 +182,42 @@ unsigned int shore_create_VAO() {
   return shoreVAO;
 }
 
+unsigned int sun_create_VAO() {
+  float x_start = -0.5f;
+  float y_start = -0.5f;
+  float x_end = 0.5f;
+  float y_end = 0.5f;
+  float height = 10.0f;
+  float sunVertices[] = {
+      x_start,  height, y_start,           // 1.0f, 1.0f,
+      x_end, height, y_start,           // 0.0f, 1.0f,
+      x_end, height,  y_end,           // 0.0f, 0.0f,
+
+      x_start,  height, y_start,           // 1.0f, 1.0f,
+      x_end, height,  y_end,           // 0.0f, 0.0f,
+      x_start, height, y_end,           // 0.0f, 1.0f,
+      /*
+      x_start,  y_start, 0.0f,            1.0f, 1.0f,
+      x_end,  y_end, 0.0f,            0.0f, 0.0f,
+      x_start, y_end, 0.0f,            1.0f, 0.0f
+       */
+  };
+  unsigned int sunVAO, sunVBO;
+  glGenVertexArrays(1, &sunVAO);
+  glGenBuffers(1, &sunVBO);
+  glBindVertexArray(sunVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, sunVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(sunVertices), &sunVertices, GL_STATIC_DRAW);
+
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+//  glEnableVertexAttribArray(1);
+//  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+
+  return sunVAO;
+
+}
+
 void display(GLFWwindow *window) {
   int SRC_WIDTH, SRC_HEIGHT;
   glfwGetWindowSize(window, &SRC_WIDTH, &SRC_HEIGHT);
@@ -219,6 +259,8 @@ void display(GLFWwindow *window) {
                                          "shaders/fragment_clouds.glsl");
   program *program_shore = init_program("shaders/vertex_shore.glsl",
                                         "shaders/fragment_shore.glsl");
+  program *program_sun = init_program("shaders/vertex_sun.glsl",
+                                         "shaders/fragment_sun.glsl");
   //stbi_set_flip_vertically_on_load(true);
   Model windfall_flat("models/Windfall Island/Windfall/Windfall_save.obj");
   Model windfall_smooth("models/Windfall Island/Windfall/Windfall.obj");
@@ -236,16 +278,23 @@ void display(GLFWwindow *window) {
   // Water
 
   unsigned int waterVAO = water_create_VAO();
+
   std::vector<unsigned int> shoreTextures = loadShore();
   unsigned int shoreVAO = shore_create_VAO();
+
+  //Zatoon
+  set_zAtoon(program_windfall);
+
+  // Sun
+  unsigned int sunVAO = sun_create_VAO();
+
+
+  Helper helper = Helper(camera, use_im_gui);
 
   // Clouds
   std::vector<unsigned int> cloudsTextures = loadClouds();
   unsigned int cloudsVAO = clouds_create_VAO();
 
-  set_zAtoon(program_windfall);
-
-  Helper helper = Helper(camera, use_im_gui);
 
   while (!glfwWindowShouldClose(window)) {
 
@@ -444,6 +493,19 @@ void display(GLFWwindow *window) {
     glBindTexture(GL_TEXTURE_2D, shoreTextures[3]);
 
     glDrawArrays(GL_TRIANGLES, 0, 6 * 1);
+
+    //------------------ Sun rendering --------------------------
+    glm::mat4 model_mat_sun = glm::mat4(1.0f);
+    model_mat_sun = glm::scale(model_mat_sun, glm::vec3(1.0f));
+    program_sun->set_uniform_mat4("model", model_mat_sun);
+    glm::mat4 view_mat_sun = glm::mat4(glm::mat3(camera->view_matrix()));
+    //glm::mat4 view_mat_sun = camera->view_matrix();
+    program_sun->set_uniform_mat4("view", view_mat_sun);
+    program_sun->set_uniform_mat4("projection", projection);
+    program_sun->set_uniform_bool("use_color", true);
+    program_sun->set_uniform_vec3("color", 1.0f, 0.0f, 0.0f);
+    glBindVertexArray(sunVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
 
     //------------------ Clouds rendering --------------------------
