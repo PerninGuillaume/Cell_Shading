@@ -38,7 +38,8 @@ void main()
         waterColor = mix(colClose, colInter, fac);
     }
 
-    vec4 texColor_wave = texture(tex_limit_wave, vec2(TexCoords.x + offset, TexCoords.y + offset / 2));
+    vec4 texColor_wave = texture(tex_limit_wave, vec2(TexCoords.x + offset/ 2, TexCoords.y + offset / 2));
+    texColor_wave += texture(tex_limit_wave, vec2(TexCoords.x - offset / 2, TexCoords.y + offset / 2));
     vec4 texColor_mask = texture(tex_mask_wave, TexCoords);
     vec4 texColor_alpha_wave = texture(tex_alpha_wave, TexCoords);
     vec4 texColor_black_wave = texture(tex_black_wave, TexCoords);
@@ -65,8 +66,10 @@ void main()
     if (TexCoords.y + abs(offset) < 0.4 && TexCoords.y < 0.45)
         FragColor.a = FragColor.a * (1- (abs(offset)));
 
-//    if (TexCoords.x <= 0.1 || TexCoords.x >= 0.9)
+//    if (TexCoords.x <= 0.1)
 //        FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+//    if (TexCoords.x >= 0.9)
+//        FragColor = vec4(0.0, 1.0, 0.0, 1.0);
 //    if (TexCoords.x >= 0.49 && TexCoords.x <= 0.51)
 //        FragColor = vec4(0.0, 1.0, 0.0, 1.0);
 }

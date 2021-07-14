@@ -84,9 +84,9 @@ unsigned int shore_create_VAO() {
 
   float heightf = -10.05f;
   float xmin = -25.0f;
-  float xmax = -50.0f;
+  float xmax = -70.0f;
   float ymin = -55.0f;
-  float ymax = -45.0f;
+  float ymax = -25.0f;
   float shoreVertices[] = {
           xmax, heightf, ymax,  0.0f, 0.0f,
           xmin, heightf, ymax, 1.0f, 0.0f,
