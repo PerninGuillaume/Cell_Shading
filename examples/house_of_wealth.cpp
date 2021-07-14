@@ -52,6 +52,19 @@ struct {
 
 void set_im_gui_options () {
   ImGui::Begin("House of Wealth options");
+  if (ImGui::TreeNode("Lighting")) {
+    ImGui::Checkbox("Enable lighting", &params.with_lighting);
+    ImGui::Checkbox("Flat look", &params.flat_look);
+    ImGui::SliderFloat("Light diffuse", &params.light_diffuse, 0.0f, 1.0f);
+    ImGui::SliderFloat("Light ambient", &params.light_ambient, 0.0f, 1.0f);
+    ImGui::SliderFloat3("Light position", params.light_pos, -10.0f, 10.0f);
+    ImGui::SliderFloat3("Light direction", params.light_dir, -1.0f, 1.0f);
+    ImGui::Checkbox("Use Zatoon for character", &params.use_zAtoon_character);
+    ImGui::Checkbox("Use Zatoon for the House", &params.use_zAtoon_house);
+
+    ImGui::TreePop();
+    ImGui::Separator();
+  }
   if (ImGui::TreeNode("Shadow")) {
     ImGui::Checkbox("Shadow", &params.use_shadow);
     ImGui::Checkbox("Depth texture", &params.display_depth_map);
@@ -63,17 +76,6 @@ void set_im_gui_options () {
     ImGui::TreePop();
     ImGui::Separator();
   }
-  ImGui::Checkbox("WireFrame", &params.wireframe);
-  ImGui::Checkbox("Use Zatoon for character", &params.use_zAtoon_character);
-  ImGui::Checkbox("Use Zatoon for the House", &params.use_zAtoon_house);
-  ImGui::Checkbox("No texture", &params.no_texture);
-  ImGui::Checkbox("Enable lighting", &params.with_lighting);
-  ImGui::Checkbox("Display Normals", &params.display_normals);
-  ImGui::Checkbox("Flat look", &params.flat_look);
-  ImGui::SliderFloat("Alpha clip", &params.alpha_clip, 0.0f, 1.0f);
-  ImGui::SliderFloat("Light diffuse", &params.light_diffuse, 0.0f, 1.0f);
-  ImGui::SliderFloat("Light ambient", &params.light_ambient, 0.0f, 1.0f);
-  ImGui::SliderFloat3("Light position", params.light_pos, -10.0f, 10.0f);
   if (ImGui::TreeNode("Contour")) {
     ImGui::Checkbox("Contour", &params.contour);
     ImGui::Checkbox("Contour wireframe", &params.contour_wireframe);
@@ -82,8 +84,9 @@ void set_im_gui_options () {
     ImGui::TreePop();
     ImGui::Separator();
   }
-  ImGui::ColorEdit3("Some color", (float*)&params.some_color);
-  ImGui::SliderFloat3("Light direction", params.light_dir, -1.0f, 1.0f);
+  ImGui::Checkbox("WireFrame", &params.wireframe);
+  ImGui::Checkbox("No texture", &params.no_texture);
+  ImGui::SliderFloat("Alpha clip", &params.alpha_clip, 0.0f, 1.0f);
   ImGui::SliderFloat3("Link translation", params.link_translation, -10.0f, 10.0f);
   ImGui::SliderFloat3("Ganondorf translation", params.ganon_translation, -10.0f, 10.0f);
 

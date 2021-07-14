@@ -21,7 +21,74 @@ bool use_im_gui = true;
 float lastFrame = 0.0f;
 
 std::shared_ptr<Camera> camera = std::make_shared<Camera>(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+//Setup of different default values
+struct {
+  bool with_lighting = true;
+  bool wireframe = false;
+  bool use_zAtoon = false;
+  bool no_texture = false;
+  bool display_normals = false;
+  bool flat_look = false;
+  bool use_shadow = true;
+  bool display_depth_map = false;
+  bool peter_paning = false;
+  bool pcf = true;
+  float shadow_bias = 0.005f;
+  float near_plane_light = 20.0f, far_plane_light = 90.0f;
+  float light_ambient = 0.7f;
+  float light_diffuse = 0.8f;
+  float light_dir[3] = {-0.3f, -0.7f, -0.3f};
+  float light_pos[3] = {-21.0f, 49.0f, -29.0f}; //need a position for shadow
+  float light_shadow_center[3] = {6.0f, 1.0f, -44.0f}; //The point the light will look at
+  ImVec4 some_color = ImVec4(0.45f, 0.55f, 0.6f, 1.00f);
+  float alpha_clip = 0.3f;
+  float offset = 0.0f;
+  float ortho_bounds[4] = {-50.0f, 50.0f, -60.0f, 70.0f};
+  bool ortho_view = false;
+} params;
 
+void set_im_gui_options() {
+
+  if (use_im_gui) {
+    ImGui::Begin("Windfall options");
+    if (ImGui::TreeNode("Lighting")) {
+      ImGui::Checkbox("Enable lighting", &params.with_lighting);
+      ImGui::SliderFloat("Light diffuse", &params.light_diffuse, 0.0f, 1.0f);
+      ImGui::SliderFloat("Light ambient", &params.light_ambient, 0.0f, 1.0f);  ImGui::Checkbox("Flat look", &params.flat_look);
+      ImGui::Checkbox("Use Zatoon", &params.use_zAtoon);
+
+      ImGui::TreePop();
+      ImGui::Separator();
+    }
+
+    if (ImGui::TreeNode("Shadow")) {
+      ImGui::Checkbox("Shadow", &params.use_shadow);
+      ImGui::Checkbox("Depth texture", &params.display_depth_map);
+      ImGui::Checkbox("Peter Paning", &params.peter_paning);
+      ImGui::Checkbox("PCF", &params.pcf);
+      ImGui::SliderFloat("Shadow bias", &params.shadow_bias, 0.0f, 0.1f);
+      ImGui::SliderFloat("Near plane light frustrum", &params.near_plane_light, 0.0f, 100.0f);
+      ImGui::SliderFloat("Far plane light frustrum", &params.far_plane_light, 10.0f, 100.0f);
+      ImGui::SliderFloat4("Ortho bounds", params.ortho_bounds, -100.0f, 100.0f);
+      ImGui::Checkbox("Ortho view", &params.ortho_view);
+      ImGui::SliderFloat3("Light position", params.light_pos, -100.0f, 100.0f);
+      ImGui::SliderFloat3("Light shadow center", params.light_shadow_center, -100.0f, 100.0f);
+      ImGui::SliderFloat3("Light direction", params.light_dir, -1.0f, 1.0f);
+      ImGui::TreePop();
+      ImGui::Separator();
+    }
+    ImGui::Checkbox("WireFrame", &params.wireframe);
+    ImGui::Checkbox("No texture", &params.no_texture);
+    ImGui::Checkbox("Display Normals", &params.display_normals);
+    ImGui::SliderFloat("Alpha clip", &params.alpha_clip, 0.0f, 1.0f);
+
+    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::End();
+
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+  }
+}
 unsigned int water_create_VAO() {
   float heightf = -10.05;
   float waterVertices[] = {
@@ -98,35 +165,14 @@ void display(GLFWwindow *window) {
   set_zAtoon(program_windfall);
 
 
-  //Setup of different default values
-  bool with_lighting = true;
-  bool wireframe = false;
-  bool use_zAtoon = false;
-  bool no_texture = false;
-  bool display_normals = false;
-  bool flat_look = false;
-  bool use_shadow = true;
-  bool display_depth_map = false;
-  bool peter_paning = false;
-  bool pcf = true;
-  float shadow_bias = 0.005f;
-  float near_plane_light = 20.0f, far_plane_light = 90.0f;
-  float light_ambient = 0.7f;
-  float light_diffuse = 0.8f;
-  float light_dir[3] = {-0.3f, -0.7f, -0.3f};
-  float light_pos[3] = {-21.0f, 49.0f, -29.0f}; //need a position for shadow
-  float light_shadow_center[3] = {6.0f, 1.0f, -44.0f}; //The point the light will look at
-  ImVec4 some_color = ImVec4(0.45f, 0.55f, 0.6f, 1.00f);
-  float alpha_clip = 0.3f;
-  float offset = 0.0f;
-  float ortho_bounds[4] = {-50.0f, 50.0f, -60.0f, 70.0f};
-  bool ortho_view = false;
+
   Helper helper = Helper(camera, use_im_gui);
 
 
   // Clouds
   std::vector<unsigned int> cloudsTextures = loadClouds();
   unsigned int cloudsVAO = clouds_create_VAO();
+
   while (!glfwWindowShouldClose(window)) {
 
     if (use_im_gui) {
@@ -147,11 +193,11 @@ void display(GLFWwindow *window) {
 
     glm::mat4 view = camera->view_matrix();
     glm::mat4 projection;
-    if (!ortho_view) {
+    if (!params.ortho_view) {
       projection = glm::perspective(glm::radians(camera->fov_camera), 800.0f / 600.0f,
                                               0.1f, 1000.0f);
     } else {
-      projection = glm::ortho(ortho_bounds[0], ortho_bounds[1], ortho_bounds[2], ortho_bounds[3], near_plane_light, far_plane_light);
+      projection = glm::ortho(params.ortho_bounds[0], params.ortho_bounds[1], params.ortho_bounds[2], params.ortho_bounds[3], params.near_plane_light, params.far_plane_light);
     }
 
 
@@ -159,12 +205,12 @@ void display(GLFWwindow *window) {
 
     //--------------------Windfall rendering-----------------------
 
-    if (wireframe)
+    if (params.wireframe)
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     else
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    if (with_lighting) {
+    if (params.with_lighting) {
       program_windfall = program_windfall_with_lighting;
     } else {
       program_windfall = program_windfall_without_lighting;
@@ -176,9 +222,9 @@ void display(GLFWwindow *window) {
     glm::mat4 lightProjection, lightView;
     glm::mat4 lightSpaceMatrix;
     //lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane_light, far_plane_light);
-    lightProjection = glm::ortho(ortho_bounds[0], ortho_bounds[1], ortho_bounds[2], ortho_bounds[3], near_plane_light, far_plane_light);
-    glm::vec3 eye = glm::vec3(light_pos[0], light_pos[1], light_pos[2]);
-    glm::vec3 center = glm::vec3(light_shadow_center[0], light_shadow_center[1], light_shadow_center[2]);
+    lightProjection = glm::ortho(params.ortho_bounds[0], params.ortho_bounds[1], params.ortho_bounds[2], params.ortho_bounds[3], params.near_plane_light, params.far_plane_light);
+    glm::vec3 eye = glm::vec3(params.light_pos[0], params.light_pos[1], params.light_pos[2]);
+    glm::vec3 center = glm::vec3(params.light_shadow_center[0], params.light_shadow_center[1], params.light_shadow_center[2]);
     glm::vec3 up = glm::vec3(0.6f, 0.02f, -0.77f);
     //glm::vec3 center = glm::vec3(0.0f);
     lightView = glm::lookAt(eye,
@@ -198,7 +244,7 @@ void display(GLFWwindow *window) {
     shadow_shader_depth->set_uniform_mat4("model", model_mat_windfall);
     shadow_shader_depth->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
 
-    if (peter_paning) {
+    if (params.peter_paning) {
       glEnable(GL_CULL_FACE);
       glCullFace(GL_FRONT);
     }
@@ -220,24 +266,24 @@ void display(GLFWwindow *window) {
     program_windfall->set_uniform_mat4("model", model_mat_windfall);
     program_windfall->set_uniform_mat4("view", view);
     program_windfall->set_uniform_mat4("projection", projection);
-    program_windfall->set_uniform_float("alpha_clip", alpha_clip);
-    program_windfall->set_uniform_bool("use_zAtoon", use_zAtoon);
-    program_windfall->set_uniform_bool("no_texture", no_texture);
-    program_windfall->set_uniform_bool("use_shadow", use_shadow);
-    program_windfall->set_uniform_bool("pcf", pcf);
-    program_windfall->set_uniform_float("shadow_bias", shadow_bias);
+    program_windfall->set_uniform_float("alpha_clip", params.alpha_clip);
+    program_windfall->set_uniform_bool("use_zAtoon", params.use_zAtoon);
+    program_windfall->set_uniform_bool("no_texture", params.no_texture);
+    program_windfall->set_uniform_bool("use_shadow", params.use_shadow);
+    program_windfall->set_uniform_bool("pcf", params.pcf);
+    program_windfall->set_uniform_float("shadow_bias", params.shadow_bias);
 
-    program_windfall->set_uniform_vec3("dirLight.direction", light_dir[0], light_dir[1], light_dir[2]);
+    program_windfall->set_uniform_vec3("dirLight.direction", params.light_dir[0], params.light_dir[1], params.light_dir[2]);
 
-    program_windfall->set_uniform_vec3("dirLight.ambient", light_ambient);
-    program_windfall->set_uniform_vec3("dirLight.diffuse", light_diffuse);
+    program_windfall->set_uniform_vec3("dirLight.ambient", params.light_ambient);
+    program_windfall->set_uniform_vec3("dirLight.diffuse", params.light_diffuse);
 
     program_windfall->set_uniform_int("shadowMap", 1);
     program_windfall->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
 
-    if (flat_look)
+    if (params.flat_look)
       windfall_flat.draw(program_windfall);
     else
       windfall_smooth.draw(program_windfall);
@@ -260,11 +306,11 @@ void display(GLFWwindow *window) {
 
 
 //-----------------------Normals------------------------------------
-    if (display_normals) {
+    if (params.display_normals) {
       shader_normals->set_uniform_mat4("projection", projection);
       shader_normals->set_uniform_mat4("view", view);
       shader_normals->set_uniform_mat4("model", model_mat_windfall);
-      if (flat_look)
+      if (params.flat_look)
         windfall_flat.draw(shader_normals);
       else
         windfall_smooth.draw(shader_normals);
@@ -294,19 +340,19 @@ void display(GLFWwindow *window) {
     program_clouds->set_uniform_int("tex_cloud_mask", 1);
     view = glm::mat4(glm::mat3(camera->view_matrix())); // Remove the translation from the view matrix
 //    view = camera->view_matrix();
-    if (offset > 1.0)
-      offset = -1.0;
-    program_clouds->set_uniform_float("offset", offset);
+    if (params.offset > 1.0)
+      params.offset = -1.0;
+    program_clouds->set_uniform_float("offset", params.offset);
 
     glm::mat4 model_mat_clouds = glm::mat4(1.0f);
 //    view = glm::translate(view, glm::vec3(-offset * 10));
     program_clouds->set_uniform_mat4("view", view);
     program_clouds->set_uniform_mat4("projection", projection);
-    program_clouds->set_uniform_float("alpha_clip", alpha_clip);
+    program_clouds->set_uniform_float("alpha_clip", params.alpha_clip);
     program_clouds->set_uniform_mat4("model", model_mat_clouds);
     program_clouds->set_uniform_vec3("camera_right", camera->right);
     program_clouds->set_uniform_vec3("camera_up", camera->up);
-    offset += helper.deltaTime / 100;
+    params.offset += helper.deltaTime / 100;
 //    std::cout <<
 
 
@@ -319,12 +365,12 @@ void display(GLFWwindow *window) {
     glBindVertexArray(0);
 
 
-    if (display_depth_map) {
+    if (params.display_depth_map) {
 
       quad_depth_shader->use();
       quad_depth_shader->set_uniform_int("depthMap", 0);
-      quad_depth_shader->set_uniform_float("near_plane", near_plane_light);
-      quad_depth_shader->set_uniform_float("far_plane", far_plane_light);
+      quad_depth_shader->set_uniform_float("near_plane", params.near_plane_light);
+      quad_depth_shader->set_uniform_float("far_plane", params.far_plane_light);
       glActiveTexture(GL_TEXTURE0);
       glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
       renderQuad();
@@ -332,38 +378,7 @@ void display(GLFWwindow *window) {
 
     //std::cout << "Camera Position : " << camera->position.x << ' ' << camera->position.y << ' ' << camera->position.z << std::endl;
     //std::cout << "Camera up : " << camera->up.x << ' ' << camera->up.y << ' ' << camera->up.z << std::endl;
-
-    if (use_im_gui) {
-      ImGui::Begin("Windfall options");
-      ImGui::SliderFloat4("Ortho bounds", ortho_bounds, -100.0f, 100.0f);
-      ImGui::Checkbox("Ortho view", &ortho_view);
-      ImGui::Checkbox("WireFrame", &wireframe);
-      ImGui::Checkbox("Shadow", &use_shadow);
-      ImGui::Checkbox("Depth texture", &display_depth_map);
-      ImGui::Checkbox("Peter Paning", &peter_paning);
-      ImGui::Checkbox("PCF", &pcf);
-      ImGui::InputFloat("Shadow bias", &shadow_bias, 0.0001f, 0.01f);
-      //ImGui::SliderFloat("Shadow bias", &shadow_bias, 0.0f, 0.01f);
-      ImGui::SliderFloat("Near plane light frustrum", &near_plane_light, 1.0f, 200.0f);
-      ImGui::SliderFloat("Far plane light frustrum", &far_plane_light, 0.0f, 400.0f);
-      ImGui::Checkbox("Use Zatoon", &use_zAtoon);
-      ImGui::Checkbox("No texture", &no_texture);
-      ImGui::Checkbox("Enable lighting", &with_lighting);
-      ImGui::Checkbox("Display Normals", &display_normals);
-      ImGui::Checkbox("Flat look", &flat_look);
-      ImGui::SliderFloat("Alpha clip", &alpha_clip, 0.0f, 1.0f);
-      ImGui::SliderFloat("Light diffuse", &light_diffuse, 0.0f, 1.0f);
-      ImGui::SliderFloat("Light ambient", &light_ambient, 0.0f, 1.0f);
-      ImGui::SliderFloat3("Light position", light_pos, -100.0f, 100.0f);
-      ImGui::SliderFloat3("Light shadow center", light_shadow_center, -100.0f, 100.0f);
-      ImGui::ColorEdit3("Some color", (float*)&some_color);
-      ImGui::SliderFloat3("Light direction", light_dir, -1.0f, 1.0f);
-      ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-      ImGui::End();
-
-      ImGui::Render();
-      ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    }
+    set_im_gui_options();
 
     glfwSwapBuffers(window);
     glfwPollEvents();
