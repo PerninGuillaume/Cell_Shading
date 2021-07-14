@@ -43,6 +43,7 @@ struct {
   ImVec4 some_color = ImVec4(0.45f, 0.55f, 0.6f, 1.00f);
   float alpha_clip = 0.3f;
   float offset = 0.0f;
+  float offset_water = 0.0f;
   float ortho_bounds[4] = {-50.0f, 50.0f, -60.0f, 70.0f};
   bool ortho_view = false;
 } params;
@@ -90,7 +91,7 @@ void set_im_gui_options() {
   }
 }
 unsigned int water_create_VAO() {
-  float heightf = -10.05;
+  float heightf = -11;
   float waterVertices[] = {
       -20000.0f, heightf, -20000.0f, 20000.0f, heightf, -20000.0f, 20000.0f, heightf, 20000.0f, 20000.0f, heightf, 20000.0f, -20000.0f, heightf, 20000.0f, -20000.0f, heightf, -20000.0f,};
 
@@ -104,6 +105,77 @@ unsigned int water_create_VAO() {
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *) 0);
 
   return waterVAO;
+}
+
+std::vector<unsigned int> loadShore()
+{
+  std::vector<unsigned int> shore{};
+
+  std::vector<std::string> files {
+                                  "images/sprites/shore_alpha_wave.png",
+                                  "images/sprites/shore_black_wave.png",
+                                  "images/sprites/shore_limit_wave.png",
+                                  "images/sprites/shore_mask.png"};
+
+
+  int width, height, nrChannels;
+  unsigned char *data;
+
+  for (const auto &file : files)
+  {
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    data = stbi_load(file.c_str(), &width, &height, &nrChannels, 0);
+    if (data)
+    {
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+      glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else{
+      std::cout << "Failed to load texture" << std::endl;
+    }
+    stbi_image_free(data);
+
+    shore.emplace_back(texture);
+  }
+  return shore;
+}
+
+unsigned int shore_create_VAO() {
+
+  float heightf = -10.05f;
+  float xmin = -25.0f;
+  float xmax = -70.0f;
+  float ymin = -55.0f;
+  float ymax = -25.0f;
+  float shoreVertices[] = {
+          xmax, heightf, ymax,  0.0f, 0.0f,
+          xmin, heightf, ymax, 1.0f, 0.0f,
+          xmin, heightf, ymin,  1.0f, 1.0f,
+          xmin, heightf, ymin,  1.0f, 1.0f,
+          xmax, heightf, ymin, 0.0f, 1.0f,
+          xmax, heightf, ymax, 0.0f, 0.0f};
+
+  unsigned int shoreVAO, shoreVBO;
+  glGenVertexArrays(1, &shoreVAO);
+  glGenBuffers(1, &shoreVBO);
+  glBindVertexArray(shoreVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, shoreVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(shoreVertices), &shoreVertices, GL_STATIC_DRAW);
+
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *) 0);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+  glEnableVertexAttribArray(1);
+
+  return shoreVAO;
 }
 
 void display(GLFWwindow *window) {
@@ -145,6 +217,8 @@ void display(GLFWwindow *window) {
                                         "shaders/fragment_water.glsl");
   program *program_clouds = init_program("shaders/vertex_clouds.glsl",
                                          "shaders/fragment_clouds.glsl");
+  program *program_shore = init_program("shaders/vertex_shore.glsl",
+                                        "shaders/fragment_shore.glsl");
   //stbi_set_flip_vertically_on_load(true);
   Model windfall_flat("models/Windfall Island/Windfall/Windfall_save.obj");
   Model windfall_smooth("models/Windfall Island/Windfall/Windfall.obj");
@@ -162,16 +236,16 @@ void display(GLFWwindow *window) {
   // Water
 
   unsigned int waterVAO = water_create_VAO();
-  set_zAtoon(program_windfall);
-
-
-
-  Helper helper = Helper(camera, use_im_gui);
-
+  std::vector<unsigned int> shoreTextures = loadShore();
+  unsigned int shoreVAO = shore_create_VAO();
 
   // Clouds
   std::vector<unsigned int> cloudsTextures = loadClouds();
   unsigned int cloudsVAO = clouds_create_VAO();
+
+  set_zAtoon(program_windfall);
+
+  Helper helper = Helper(camera, use_im_gui);
 
   while (!glfwWindowShouldClose(window)) {
 
@@ -329,6 +403,48 @@ void display(GLFWwindow *window) {
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
     glDepthFunc(GL_LESS);
+
+
+    //------------------- Shore rendering --------------------------
+
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    program_shore->use();
+
+    program_shore->set_uniform_int("tex_alpha_wave", 0);
+    program_shore->set_uniform_int("tex_black_wave", 1);
+    program_shore->set_uniform_int("tex_limit_wave", 2);
+    program_shore->set_uniform_int("tex_mask_wave", 3);
+
+    view = camera->view_matrix();
+    if (params.offset_water > 1.0)
+      params.offset_water = -1.0;
+    program_shore->set_uniform_float("offset", params.offset_water);
+
+    glm::mat4 model_mat_shore = glm::mat4(1.0f);
+//    view = glm::translate(view, glm::vec3(-offset * 10));
+    program_shore->set_uniform_mat4("view", view);
+    program_shore->set_uniform_mat4("projection", projection);
+    program_shore->set_uniform_float("alpha_clip", params.alpha_clip);
+//    model_mat_shore = glm::rotate(model_mat_shore, (float)PI / 4.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+    program_shore->set_uniform_mat4("model", model_mat_shore);
+    params.offset_water += helper.deltaTime;
+//    std::cout <<
+
+
+    glBindVertexArray(shoreVAO);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, shoreTextures[0]);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, shoreTextures[1]);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, shoreTextures[2]);
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, shoreTextures[3]);
+
+    glDrawArrays(GL_TRIANGLES, 0, 6 * 1);
+    glBindVertexArray(0);
 
     //------------------ Clouds rendering --------------------------
 

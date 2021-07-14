@@ -74,7 +74,7 @@ int main() {
     windfall::display(window);
     //skybox::display(window);
     //shadow::display(window);
-    //house_of_wealth::display(window);
+//    house_of_wealth::display(window);
   } catch (const char* msg) {
     std::cerr << msg << std::endl;
   }
