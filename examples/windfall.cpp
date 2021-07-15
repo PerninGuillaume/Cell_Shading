@@ -56,7 +56,7 @@ struct {
   bool hd;
   float wave_height = -10.05f;
   float sea_height = -10.267f;
-  float billboard_size[2] = {50.0f, 3.0f};
+  float billboard_size[2] = {5.0f, 2.0f};
 } params;
 
 void set_im_gui_options() {
