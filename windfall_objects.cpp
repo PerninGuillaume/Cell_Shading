@@ -74,6 +74,16 @@ unsigned int sun_create_VAO() {
 
 }
 
+float get_eye_cancer(float alignment, float alignment_limit, float lowest_eye_cancer) {
+  float eye_cancer = 1.0f; // Value to darken the scene if we look too directly into the sun
+
+  if (alignment > alignment_limit) {
+    float coeff_dir = (lowest_eye_cancer - 1.0f) / (1.0f - alignment_limit);
+    eye_cancer = coeff_dir * alignment + (lowest_eye_cancer - coeff_dir);
+  }
+  return eye_cancer;
+}
+
 std::vector<unsigned int> loadShore()
 {
   std::vector<unsigned int> shore{};

@@ -52,6 +52,7 @@ struct {
   //ImVec4 color_inner_ring = ImVec4(1.0f, 1.0f, 0.9f, 1.0f);
   ImVec4 color_gradient = ImVec4(146 / 255.0f, 145 / 255.0f, 7 / 255.0f, 1.0f);
   float sun_magnification = 330.0f;
+  float lowest_eye_cancer = 0.1f;
   bool hd;
 } params;
 
@@ -66,6 +67,7 @@ void set_im_gui_options() {
       //ImGui::ColorPicker3("Inner ring", (float*)&params.color_inner_ring);
       ImGui::ColorPicker3("Gradient", (float*)&params.color_gradient);
       ImGui::SliderFloat("Sun magnification", &params.sun_magnification, 0.0f, 1000.0f);
+      ImGui::SliderFloat("Lowest Eye cancer", &params.lowest_eye_cancer, 0.0f, 1.0f);
 
       ImGui::TreePop();
       ImGui::Separator();
@@ -285,6 +287,11 @@ void display(GLFWwindow *window) {
     // --------------------------------------------------------------
 
 
+    float alignment = glm::dot(camera->front, glm::vec3(0.0f, 1.0f, 0.0f));// Variable measuring by how
+    //much we are looking at the sun, 1.0f being the highest possible value
+    float alignment_limit = 0.9f; // By this value we can view the sun
+    float eye_cancer = get_eye_cancer(alignment, alignment_limit, params.lowest_eye_cancer);
+
     program_windfall->set_uniform_mat4("model", model_mat_windfall);
     program_windfall->set_uniform_mat4("view", view);
     program_windfall->set_uniform_mat4("projection", projection);
@@ -297,8 +304,8 @@ void display(GLFWwindow *window) {
 
     program_windfall->set_uniform_vec3("dirLight.direction", params.light_dir[0], params.light_dir[1], params.light_dir[2]);
 
-    program_windfall->set_uniform_vec3("dirLight.ambient", params.light_ambient);
-    program_windfall->set_uniform_vec3("dirLight.diffuse", params.light_diffuse);
+    program_windfall->set_uniform_vec3("dirLight.ambient", params.light_ambient * eye_cancer);
+    program_windfall->set_uniform_vec3("dirLight.diffuse", params.light_diffuse * eye_cancer);
 
     program_windfall->set_uniform_int("shadowMap", 1);
     program_windfall->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
@@ -397,9 +404,7 @@ void display(GLFWwindow *window) {
     program_sun->set_uniform_mat4("model", model_mat_sun);
     glm::mat4 view_mat_sun = glm::mat4(glm::mat3(camera->view_matrix()));
 
-    float alignment = glm::dot(camera->front, glm::vec3(0.0f, 1.0f, 0.0f));
 
-    float alignment_limit = 0.9f;
     if (alignment > alignment_limit) {
       float translation = -(alignment - alignment_limit) * 10 * params.sun_magnification;
       view_mat_sun = glm::translate(view_mat_sun, glm::vec3(0.0f, translation, 0.0f));
