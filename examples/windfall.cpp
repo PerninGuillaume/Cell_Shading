@@ -194,8 +194,8 @@ void display(GLFWwindow *window) {
   unsigned int waterVAO = water_create_VAO(params.sea_height);
 
   std::vector<unsigned int> shoreTextures = loadShore();
-  int nb_of_waves;
-  unsigned int shoreVAO = shore_create_VAO(nb_of_waves, params.wave_height);
+  int nb_of_shore_waves;
+  unsigned int shoreVAO = shore_create_VAO(nb_of_shore_waves, params.wave_height);
 
   //Zatoon
   set_zAtoon(program_windfall);
@@ -216,7 +216,7 @@ void display(GLFWwindow *window) {
   std::vector<glm::vec3> waves_center;
   glm::vec3 center_of_waves = glm::vec3(-3.0f, 0.0f, -20.0f);
   std::vector<unsigned int> waves_VAO = waves_create_VAO_vector(camera->position, waves_center, center_of_waves);
-  bool wave_new_cycle_has_begun= false;
+  std::vector<bool> wave_new_cycle_has_begun(waves_VAO.size(), false);
 
   while (!glfwWindowShouldClose(window)) {
 
@@ -427,7 +427,7 @@ void display(GLFWwindow *window) {
     glActiveTexture(GL_TEXTURE4);
     glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
 
-    glDrawArrays(GL_TRIANGLES, 0, 6 * nb_of_waves);
+    glDrawArrays(GL_TRIANGLES, 0, 6 * nb_of_shore_waves);
 
     //------------------ Sun rendering --------------------------
     glEnable(GL_BLEND);
@@ -515,31 +515,34 @@ void display(GLFWwindow *window) {
       program_waves->set_uniform_mat4("model", model_mat_waves);
       program_waves->set_uniform_vec3("camera_right", camera->right);
       program_waves->set_uniform_vec3("camera_up", camera->up);
-      glm::vec3 billboard_size = glm::vec3(params.billboard_size[0], params.billboard_size[1], 0.0f);
-     float percentage_apex = glm::sin(glfwGetTime());
-      //float percentage_apex = (glm::sin(glfwGetTime()) + 1.0f) / 2.0f;
-      float percentage_displacement = fmod(glfwGetTime(), 2 * PI) / (2 * PI);
-      //std::cout << percentage_apex << " " << percentage_displacement << std::endl;
-      if (percentage_apex < 0.0f && !wave_new_cycle_has_begun) {
-        wave_new_cycle_has_begun = true;
-        billboard_size[0] += rand() % 100;
-        billboard_size[1] += rand() % 100;
-      } else if (percentage_apex > 0.0f) {
-        wave_new_cycle_has_begun = false;
-      }
+      std::vector<glm::vec3> billboard_sizes(waves_VAO.size(), glm::vec3(params.billboard_size[0], params.billboard_size[1], 0.0f));
+      //glm::vec3 billboard_size = glm::vec3(params.billboard_size[0], params.billboard_size[1], 0.0f);
 
-      program_waves->set_uniform_float("apex_percentage", percentage_apex);
-      program_waves->set_uniform_float("dispacement_percentage", percentage_displacement);
+
       program_waves->set_uniform_vec3("center_waves", center_of_waves);
       for (size_t i = 0; i < waves_VAO.size(); ++i) {
-        program_waves->set_uniform_vec3("billboard_size", billboard_size[0],
-                                        billboard_size[1] * percentage_apex, 0.0f);
+        float percentage_apex = glm::sin(glfwGetTime() + (float)i);
+        //std::cout << i << ":" << percentage_apex << std::endl;
+        //float percentage_apex = (glm::sin(glfwGetTime()) + 1.0f) / 2.0f;
+        float percentage_displacement = fmod(glfwGetTime() + (float)i, 2 * PI) / (2 * PI);
+        //std::cout << percentage_apex << " " << percentage_displacement << std::endl;
+        if (percentage_apex < 0.0f && !wave_new_cycle_has_begun[i]) {
+          wave_new_cycle_has_begun[i] = true;
+          billboard_sizes[i][0] += rand() % 100;
+          billboard_sizes[i][1] += rand() % 100;
+        } else if (percentage_apex > 0.0f) {
+          wave_new_cycle_has_begun[i] = false;
+        }
+        program_waves->set_uniform_float("apex_percentage", percentage_apex);
+        program_waves->set_uniform_float("dispacement_percentage", percentage_displacement);
+        program_waves->set_uniform_vec3("billboard_size", billboard_sizes[i][0],
+                                        billboard_sizes[i][1] * percentage_apex, 0.0f);
         program_waves->set_uniform_vec3("wave_center", waves_center[i]);
         //display_glm_vec3(waves_center[i]);
         glBindVertexArray(waves_VAO[i]);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, wavesTextures[0]);
-        glDrawArrays(GL_TRIANGLES, 0, 6 * 4);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
       }
     }

@@ -239,11 +239,12 @@ std::vector<unsigned int> loadWaves()
 
 std::vector<unsigned int> waves_create_VAO_vector(glm::vec3 position_camera, std::vector<glm::vec3> &waves_center, glm::vec3 center_of_waves) {
   std::vector<unsigned int> waves_VAO;
-  float r = -50;
+  //float r = -50;
   std::vector<float> angles = {};
-  for (int i = 0; i < 4; i ++)
+  int nb_of_waves = 1600;
+  for (int i = 0; i < nb_of_waves; i ++)
   {
-    angles.push_back(i * 360 / 4);
+    angles.push_back(i * 360 / nb_of_waves);
   }
 
   float height = -1.0;
@@ -252,11 +253,13 @@ std::vector<unsigned int> waves_create_VAO_vector(glm::vec3 position_camera, std
 
   for (const auto & angle : angles)
   {
-
-    //float nb = rand() % 50;
-    //float nb2 = rand() % 50;
-    float nb = 4;
-    float nb2 = 8;
+    float nb = rand() % 50;
+    float nb2 = rand() % 50;
+    int radius_max = 500;
+    int radius_min = 75;
+    float r = -1 * (rand()%(radius_max-radius_min + 1) + radius_min);
+    //float nb = 4;
+    //float nb2 = 8;
 //    std::cout << angle << std::endl;
     float x_start = (r * cos((angle - nb) * PI / 180.0f));
     float x_end = (r * cos((angle + nb2) * PI / 180.0f));
