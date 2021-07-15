@@ -5,5 +5,5 @@
 #include <GLFW/glfw3.h>
 
 namespace house_of_wealth {
-void display(GLFWwindow* window);
+void display(GLFWwindow* window, bool use_hd_texture = true);
 }

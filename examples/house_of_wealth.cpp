@@ -23,6 +23,7 @@ std::shared_ptr<Camera> camera = std::make_shared<Camera>(glm::vec3(0.0f, 0.0f, 
 
 //Setup of different default values
 struct {
+  bool hd = false;
   bool with_lighting = true;
   bool wireframe = false;
   bool use_zAtoon_house = false;
@@ -52,6 +53,7 @@ struct {
 
 void set_im_gui_options () {
   ImGui::Begin("House of Wealth options");
+  ImGui::Checkbox("HD", &params.hd);
   if (ImGui::TreeNode("Lighting")) {
     ImGui::Checkbox("Enable lighting", &params.with_lighting);
     ImGui::Checkbox("Flat look", &params.flat_look);
@@ -132,7 +134,7 @@ void draw_contour(Model& model, glm::mat4 model_mat, program* programOutline, gl
   }
 }
 
-void display(GLFWwindow *window) {
+void display(GLFWwindow *window, bool use_hd_texture) {
 
   int SRC_WIDTH, SRC_HEIGHT;
   glfwGetWindowSize(window, &SRC_WIDTH, &SRC_HEIGHT);
@@ -155,6 +157,7 @@ void display(GLFWwindow *window) {
   ImGui_ImplOpenGL3_Init("#version 450");
   ImGui::StyleColorsDark();
 
+  //--------------------------------Shader setup--------------------------------------
   program *shadow_shader_depth = init_program("shaders/vertex_shadow_depth.glsl",
                                               "shaders/fragment_shadow_depth.glsl");
   program *shader_character = init_program("shaders/vertex_link.glsl",
@@ -168,8 +171,11 @@ void display(GLFWwindow *window) {
   program *quad_depth_shader = init_program("shaders/vertex_normalized_coord.glsl", "shaders/fragment_quad_depth.glsl");
   program *shader_house = shader_house_with_light;
 
-  Model house_of_wealth("models/Auction House/model/model1.obj");
-  Model house_of_wealth_smooth("models/Auction House/model/model1_smooth.obj");
+  //-------------------------------Model and texture loading------------------------------
+  Model house_of_wealth_lowres("models/Auction House/model/model1.obj");
+  Model house_of_wealth_highres;
+  if (use_hd_texture)
+    house_of_wealth_highres = Model("models/Auction House/model_hd/model1.obj");
   Model link("models/link-cartoon/source/LinkCartoon.fbx");
   Model ganondorf("models/Ganondorf Figurine/133.obj");
 
@@ -292,10 +298,10 @@ void display(GLFWwindow *window) {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
 
-    if (params.flat_look)
-      house_of_wealth.draw(shader_house);
+    if (params.hd && use_hd_texture)
+      house_of_wealth_highres.draw(shader_house);
     else
-      house_of_wealth_smooth.draw(shader_house);
+      house_of_wealth_lowres.draw(shader_house);
 
 
     //----------------------Link-----------------------------------------

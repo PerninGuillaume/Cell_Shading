@@ -4,8 +4,8 @@
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
-unsigned int SRC_WIDTH = 800 * 1.5;
-unsigned int SRC_HEIGHT = 600 * 1.5;
+unsigned int SRC_WIDTH = 1920;
+unsigned int SRC_HEIGHT = 1080;
 
 void error_callback(int error, const char* description)
 {
@@ -57,8 +57,8 @@ int main() {
   try {
     //link::display(window);
     //Display_template ganondorf(window, "models/Ganondorf Figurine/133.obj", false);
-    windfall::display(window, false);
-    //house_of_wealth::display(window);
+    //windfall::display(window, false);
+    house_of_wealth::display(window, true);
   } catch (const char* msg) {
     std::cerr << msg << std::endl;
   }

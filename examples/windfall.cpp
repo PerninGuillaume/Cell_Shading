@@ -233,7 +233,7 @@ void display(GLFWwindow *window, bool load_hd_texture) {
     glm::mat4 view = camera->view_matrix();
     glm::mat4 projection;
     if (!params.ortho_view) {
-      projection = glm::perspective(glm::radians(camera->fov_camera), 800.0f / 600.0f,
+      projection = glm::perspective(glm::radians(camera->fov_camera), (float)SRC_WIDTH / (float)SRC_HEIGHT,
                                               0.1f, 1000.0f);
     } else {
       projection = glm::ortho(params.ortho_bounds[0], params.ortho_bounds[1], params.ortho_bounds[2], params.ortho_bounds[3], params.near_plane_light, params.far_plane_light);
