@@ -62,18 +62,10 @@ void main()
     vec4 texColor_mask = texture(tex_mask_wave, TexCoords);
     vec4 texColor_alpha_wave = texture(tex_alpha_wave, TexCoords);
     vec4 texColor_black_wave = texture(tex_black_wave, TexCoords);
-//    vec4 texColor_mask = texture(tex_cloud_mask, vec2((TexCoords.x + offset), TexCoords.y));
 
-//    texColor_cloud.a = texColor_cloud.a * texColor_mask.a * mix(1.2, 0.0, TexCoords.x) * mix(0.0, 1.2, TexCoords.x);
-
-//    if (texColor_cloud.a < alpha_clip)
-//    discard;
     texColor_wave.a = texColor_wave.a * texColor_mask.a;
     texColor_alpha_wave.a = 0.5;
-//    texColor_wave.rgb = texColor_wave.rgb + texColor_alpha_wave.rgb + texColor_black_wave.rgb;
 
-//    if (texColor_wave.a <= 0.1 && TexCoords.y + offset < 0.1)
-//        discard;
     texColor_black_wave.a = 0.3;
 
     if (TexCoords.y < 0.05)
@@ -81,17 +73,11 @@ void main()
 
     texColor_wave.a = texColor_wave.a * mix(0.0, 1.0, TexCoords.y) * mix(2.0, 0.0, TexCoords.y) * mix(1.0, 0.0, TexCoords.x);
     texColor_wave = texColor_wave + vec4(waterColor, 0.9 * texColor_mask.a);
-    //FragColor = texColor_wave;
+
     FragColor = vec4(vec3(texColor_wave * coeff), texColor_wave.a);
     if (TexCoords.y + abs(offset) < 0.4 && TexCoords.y < 0.45)
         FragColor.a = FragColor.a * (1- (abs(offset)));
 
-//    if (TexCoords.x <= 0.1)
-//        FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-//    if (TexCoords.x >= 0.9)
-//        FragColor = vec4(0.0, 1.0, 0.0, 1.0);
-//    if (TexCoords.x >= 0.49 && TexCoords.x <= 0.51)
-//        FragColor = vec4(0.0, 1.0, 0.0, 1.0);
 }
 
 float ShadowCalculation(vec4 fragPosLightSpace)

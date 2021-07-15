@@ -20,9 +20,4 @@ void main()
             discard;
         FragColor = texColor;
     }
-    /*
-    FragColor = vec4(vec3(texture(texture_diffuse1, TexCoords)) + color, 1.0f);
-    FragColor = mix(texture(texture_diffuse1, TexCoords), vec4(color, 1.0f), 0.8f);
-    */
-
 }

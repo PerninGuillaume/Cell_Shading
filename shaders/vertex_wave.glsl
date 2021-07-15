@@ -19,19 +19,15 @@ void main()
 {
     TexCoords = aTexCoords;
 
-    //gl_Position = projection * view * model * vec4(aPos, 1.0);
-    bool billboard = true;
-    if (billboard) {
-        vec3 direction_wave = normalize(wave_center - center_waves) * 10.0f;
+    vec3 direction_wave = normalize(wave_center - center_waves) * 10.0f;
 
-        vec3 vertexPosition = wave_center
-        + camera_right * aPos.x * billboard_size.x
-        + camera_up * aPos.y * billboard_size.y;
+    vec3 vertexPosition = wave_center
+    + camera_right * aPos.x * billboard_size.x
+    + camera_up * aPos.y * billboard_size.y;
 
-        vertexPosition.y += 2.0f * billboard_size.y;
-        vertexPosition -= direction_wave * dispacement_percentage;
+    vertexPosition.y += 2.0f * billboard_size.y;
+    vertexPosition -= direction_wave * dispacement_percentage;
 
-        gl_Position = projection * view * vec4(vertexPosition, 1.0f);
-    }
+    gl_Position = projection * view * vec4(vertexPosition, 1.0f);
 
 }

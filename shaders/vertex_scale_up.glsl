@@ -14,8 +14,7 @@ out vec2 TexCoords;
 
 void main() {
     Normal = mat3(transpose(inverse(model))) * aNormal; //To have proper normal if we scale the object
-//    vec3 displaced_aPos = aPos + aNormal * displacement;
- //   gl_Position = projection * view * model * vec4(displaced_aPos, 1.0f);
+
     vec3 tmp = vec3(model * vec4(aPos, 1.0f));
     vec3 displaced_Pos = tmp + aNormal * displacement;
     gl_Position = projection * view * vec4(displaced_Pos, 1.0f);

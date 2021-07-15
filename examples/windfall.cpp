@@ -29,7 +29,6 @@ struct {
   bool use_zAtoon = false;
   bool no_texture = false;
   bool display_normals = false;
-  bool flat_look = false;
   bool use_shadow = true;
   bool display_depth_map = false;
   bool peter_paning = false;
@@ -49,14 +48,13 @@ struct {
   bool ortho_view = false;
   ImVec4 color_border = ImVec4(243.0f / 255.0f, 106.0f / 255.0f, 65.0f / 255.0f, 1.0f);
   ImVec4 color_center = ImVec4(246 / 255.0f, 197 / 255.0f, 193 / 255.0f, 1.0f);
-  //ImVec4 color_inner_ring = ImVec4(1.0f, 1.0f, 0.9f, 1.0f);
   ImVec4 color_gradient = ImVec4(146 / 255.0f, 145 / 255.0f, 7 / 255.0f, 1.0f);
   float sun_magnification = 330.0f;
   float lowest_eye_cancer = 0.1f;
   bool hd;
   float wave_height = -10.05f;
   float sea_height = -10.267f;
-  float billboard_size[2] = {5.0f, 2.0f};
+  float billboard_size[2] = {5.0f, 1.0f};
 } params;
 
 void set_im_gui_options() {
@@ -76,7 +74,7 @@ void set_im_gui_options() {
     if (ImGui::TreeNode("Lighting")) {
       ImGui::Checkbox("Enable lighting", &params.with_lighting);
       ImGui::SliderFloat("Light diffuse", &params.light_diffuse, 0.0f, 1.0f);
-      ImGui::SliderFloat("Light ambient", &params.light_ambient, 0.0f, 1.0f);  ImGui::Checkbox("Flat look", &params.flat_look);
+      ImGui::SliderFloat("Light ambient", &params.light_ambient, 0.0f, 1.0f);
       ImGui::Checkbox("Use Zatoon", &params.use_zAtoon);
 
       ImGui::TreePop();
@@ -89,10 +87,6 @@ void set_im_gui_options() {
       ImGui::Checkbox("Peter Paning", &params.peter_paning);
       ImGui::Checkbox("PCF", &params.pcf);
       ImGui::SliderFloat("Shadow bias", &params.shadow_bias, 0.0f, 0.1f);
-      ImGui::SliderFloat("Near plane light frustrum", &params.near_plane_light, 0.0f, 100.0f);
-      ImGui::SliderFloat("Far plane light frustrum", &params.far_plane_light, 10.0f, 100.0f);
-      ImGui::SliderFloat4("Ortho bounds", params.ortho_bounds, -100.0f, 100.0f);
-      ImGui::Checkbox("Ortho view", &params.ortho_view);
       ImGui::SliderFloat3("Light position", params.light_pos, -100.0f, 100.0f);
       ImGui::SliderFloat3("Light shadow center", params.light_shadow_center, -100.0f, 100.0f);
       ImGui::SliderFloat3("Light direction", params.light_dir, -1.0f, 1.0f);
@@ -101,8 +95,6 @@ void set_im_gui_options() {
       ImGui::Separator();
     }
     if (ImGui::TreeNode("Water")) {
-      ImGui::SliderFloat("Wave height", &params.wave_height, -10.2f, -10.0f);
-      ImGui::SliderFloat("Sea height", &params.sea_height, -10.8f, -10.0f);
       ImGui::SliderFloat("Billboard size x", &params.billboard_size[0], 0.0f, 100.0f);
       ImGui::SliderFloat("Billboard size y", &params.billboard_size[1], 0.0f, 10.0f);
 
@@ -438,7 +430,6 @@ void display(GLFWwindow *window, bool load_hd_texture) {
     program_sun->set_uniform_mat4("projection", projection);
     program_sun->set_uniform_vec3("color_border", params.color_border.x, params.color_border.y, params.color_border.z);
     program_sun->set_uniform_vec3("color_center", params.color_center.x, params.color_center.y, params.color_center.z);
-    //program_sun->set_uniform_vec3("color_inner_ring", params.color_inner_ring.x, params.color_inner_ring.y, params.color_inner_ring.z);
     program_sun->set_uniform_vec3("color_gradient", params.color_gradient.x, params.color_gradient.y, params.color_gradient.z);
 
     program_sun->set_uniform_int("sun_border", 0);
