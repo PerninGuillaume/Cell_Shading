@@ -8,6 +8,7 @@
 
 class Model {
  public:
+  Model();
   Model(const std::string& path);
   void draw(program* program);
 

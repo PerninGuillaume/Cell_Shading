@@ -4,6 +4,9 @@
 
 unsigned int loadTexture(const std::string& path, const std::string& directory);
 
+Model::Model() {
+}
+
 Model::Model(const std::string &path) {
   loadModel(path);
 }
@@ -121,6 +124,7 @@ std::vector<Texture> Model::loadMaterialTextures(aiMaterial *material, aiTexture
   }
   return textures;
 }
+
 
 unsigned int loadTexture(const std::string& path, const std::string& directory)
 {

@@ -47,7 +47,8 @@ add_executable(TP1
         Helper.cpp
         Skybox.cpp
         Display_template.cpp
-        misc.cpp)
+        misc.cpp
+        windfall_objects.cpp)
 
 add_executable(imgui_demo
         imgui_example.cpp
