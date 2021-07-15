@@ -54,6 +54,8 @@ struct {
   float sun_magnification = 330.0f;
   float lowest_eye_cancer = 0.1f;
   bool hd;
+  float wave_height = -10.05f;
+  float sea_height = -10.267f;
 } params;
 
 void set_im_gui_options() {
@@ -95,6 +97,14 @@ void set_im_gui_options() {
       ImGui::SliderFloat3("Light position", params.light_pos, -100.0f, 100.0f);
       ImGui::SliderFloat3("Light shadow center", params.light_shadow_center, -100.0f, 100.0f);
       ImGui::SliderFloat3("Light direction", params.light_dir, -1.0f, 1.0f);
+
+      ImGui::TreePop();
+      ImGui::Separator();
+    }
+    if (ImGui::TreeNode("Water")) {
+      ImGui::SliderFloat("Wave height", &params.wave_height, -10.2f, -10.0f);
+      ImGui::SliderFloat("Sea height", &params.sea_height, -10.8f, -10.0f);
+
       ImGui::TreePop();
       ImGui::Separator();
     }
@@ -176,11 +186,11 @@ void display(GLFWwindow *window) {
 
   // Water
 
-  unsigned int waterVAO = water_create_VAO();
+  unsigned int waterVAO = water_create_VAO(params.sea_height);
 
   std::vector<unsigned int> shoreTextures = loadShore();
   int nb_of_waves;
-  unsigned int shoreVAO = shore_create_VAO(nb_of_waves);
+  unsigned int shoreVAO = shore_create_VAO(nb_of_waves, params.wave_height);
 
   //Zatoon
   set_zAtoon(program_windfall);
@@ -224,6 +234,9 @@ void display(GLFWwindow *window) {
       projection = glm::ortho(params.ortho_bounds[0], params.ortho_bounds[1], params.ortho_bounds[2], params.ortho_bounds[3], params.near_plane_light, params.far_plane_light);
     }
 
+    unsigned int waterVAO = water_create_VAO(params.sea_height);
+    int nb_of_waves;
+    unsigned int shoreVAO = shore_create_VAO(nb_of_waves, params.wave_height);
 
 
 
@@ -329,6 +342,14 @@ void display(GLFWwindow *window) {
     program_water->set_uniform_mat4("projection", projection);
     program_water->set_uniform_mat4("model", model_mat_water);
 
+    program_water->set_uniform_bool("use_shadow", params.use_shadow);
+    program_water->set_uniform_bool("pcf", params.pcf);
+    program_water->set_uniform_float("shadow_bias", params.shadow_bias);
+    program_water->set_uniform_int("shadowMap", 0);
+    program_water->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
 
     glBindVertexArray(waterVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -391,6 +412,15 @@ void display(GLFWwindow *window) {
       glActiveTexture(GL_TEXTURE0 + i);
       glBindTexture(GL_TEXTURE_2D, shoreTextures[i]);
     }
+
+    program_shore->set_uniform_bool("use_shadow", params.use_shadow);
+    program_shore->set_uniform_bool("pcf", params.pcf);
+    program_shore->set_uniform_float("shadow_bias", params.shadow_bias);
+    program_shore->set_uniform_int("shadowMap", 4);
+    program_shore->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
+
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
 
     glDrawArrays(GL_TRIANGLES, 0, 6 * nb_of_waves);
 

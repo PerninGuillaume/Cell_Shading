@@ -8,13 +8,13 @@ struct DirLight {
     vec3 specular;
 };
 
-in vec3 FragPos;
+in vec3 FragPos; //TODO do we need this ??
 in vec3 Normal;
 in vec2 TexCoords;
 in vec4 FragPosLightSpace;
 
 uniform DirLight dirLight;
-uniform vec3 viewPosition;
+uniform vec3 viewPosition; //TODO same
 uniform vec3 color;
 uniform float zAtoon[256];
 uniform float alpha_clip;

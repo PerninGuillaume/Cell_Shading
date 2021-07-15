@@ -2,15 +2,16 @@
 #include "windfall_objects.h"
 #include "misc.h"
 
-unsigned int water_create_VAO() {
-  float heightf = -11;
-  float waterVertices[] = {
+unsigned int water_create_VAO(float heightf) {
+
+ float waterVertices[] = {
       -20000.0f, heightf, -20000.0f,
       20000.0f, heightf, -20000.0f,
       20000.0f, heightf, 20000.0f,
       20000.0f, heightf, 20000.0f,
       -20000.0f, heightf, 20000.0f,
-      -20000.0f, heightf, -20000.0f,};
+      -20000.0f, heightf, -20000.0f
+      };
 
   unsigned int waterVAO, waterVBO;
   glGenVertexArrays(1, &waterVAO);
@@ -101,7 +102,7 @@ std::vector<unsigned int> loadShore()
   return shore;
 }
 
-unsigned int shore_create_VAO(int &nb_of_points) {
+unsigned int shore_create_VAO(int &nb_of_points, float heightf) {
 
   std::vector<glm::vec3> points = {
       glm::vec3 (-2822.0f, 0.0f, 2894.0f),
@@ -364,7 +365,6 @@ unsigned int shore_create_VAO(int &nb_of_points) {
     }
   }
 
-  float heightf = -10.05f;
   std::vector<float> shoreVertices = {};
 
   for (auto& point_ensemble : points_ensemble) {
