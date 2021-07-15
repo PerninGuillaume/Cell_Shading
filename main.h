@@ -11,11 +11,6 @@
 #include "Model.h"
 #include "Display_template.h"
 
-#include "examples/gouraud.h"
-#include "examples/phong.h"
-#include "examples/texture.h"
-#include "examples/coordinates.h"
-#include "examples/camera.h"
 #include "examples/colors.h"
 #include "examples/light_map.h"
 #include "examples/multiples_lights.h"

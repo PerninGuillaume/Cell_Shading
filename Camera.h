@@ -36,7 +36,7 @@ public:
     float fov_camera = 45.0f;
     bool shiftPressed = false;
     bool ctrlPressed = false;
-    float sprintSpeedUp = 20.0f;
+    float sprintSpeedUp = 10.0f;
     float crouchSlowDown = 0.1f;
 
     void refresh_vectors();

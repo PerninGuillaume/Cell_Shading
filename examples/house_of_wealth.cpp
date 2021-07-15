@@ -33,7 +33,7 @@ struct {
   bool display_normals = false;
   bool flat_look = false;
   bool peter_paning = false;
-  bool pcf = false;
+  bool pcf = true;
   float shadow_bias = 0.005f;
   float near_plane_light = 1.0f, far_plane_light = 17.5f;
   float light_ambient = 0.7f;

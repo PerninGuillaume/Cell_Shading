@@ -17,11 +17,6 @@ add_executable(TP1
         Mesh.cpp
         Model.cpp
         Camera.cpp
-        examples/gouraud.cpp
-        examples/texture.cpp
-        examples/phong.cpp
-        examples/coordinates.cpp
-        examples/camera.cpp
         examples/colors.cpp
         examples/light_map.cpp
         examples/multiples_lights.cpp
