@@ -169,10 +169,10 @@ void display(GLFWwindow *window, bool use_hd_texture) {
   program *shader_house = shader_house_with_light;
 
   //-------------------------------Model and texture loading------------------------------
-  Model house_of_wealth_lowres("models/Auction House/model/model1.obj");
+  Model house_of_wealth_lowres("models/Auction House/model/model1_smooth.obj");
   Model house_of_wealth_highres;
   if (use_hd_texture)
-    house_of_wealth_highres = Model("models/Auction House/model_hd/model1.obj");
+    house_of_wealth_highres = Model("models/Auction House/model_hd/model1_smooth.obj");
   Model link("models/link-cartoon/source/LinkCartoon.fbx");
   Model ganondorf("models/Ganondorf Figurine/133.obj");
 
@@ -214,7 +214,7 @@ void display(GLFWwindow *window, bool use_hd_texture) {
     else
       shader_house = shader_house_no_light;
 
-    glm::mat4 projection = glm::perspective(glm::radians(camera->fov_camera), 800.0f / 600.0f,
+    glm::mat4 projection = glm::perspective(glm::radians(camera->fov_camera), 1920.0f / 1080.0f,
                                             0.1f, 1000.0f);
     glm::mat4 view = camera->view_matrix();
 
