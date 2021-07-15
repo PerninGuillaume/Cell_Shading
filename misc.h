@@ -7,3 +7,4 @@ program *init_program(const std::string& vertex_shader_filename,
                       const std::string& fragment_shader_filename, const std::string& geometry_shader_filename = "");
 void renderQuad();
 unsigned int load_image(const std::string& file);
+void display_glm_vec3(const glm::vec3& vec_3);

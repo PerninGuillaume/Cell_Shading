@@ -102,3 +102,7 @@ unsigned int load_image(const std::string& file) {
   stbi_image_free(data);
   return texture;
 }
+
+void display_glm_vec3(const glm::vec3& vec_3) {
+  std::cout << vec_3.x << ' ' << vec_3.y << ' ' << vec_3.z << std::endl;
+}

@@ -197,3 +197,114 @@ unsigned int clouds_create_VAO() {
 
   return cloudsVAO;
 }
+
+std::vector<unsigned int> loadWaves()
+{
+  std::vector<unsigned int> waves{};
+
+  std::vector<std::string> files {
+    "images/sprites/wave1.png",
+      };
+
+
+  int width, height, nrChannels;
+  unsigned char *data;
+
+  for (const auto &file : files)
+  {
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    data = stbi_load(file.c_str(), &width, &height, &nrChannels, 0);
+    if (data)
+    {
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+      glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else{
+      std::cout << "Failed to load texture" << std::endl;
+    }
+    stbi_image_free(data);
+
+    waves.emplace_back(texture);
+  }
+  return waves;
+}
+
+std::vector<unsigned int> waves_create_VAO_vector(glm::vec3 position_camera, std::vector<glm::vec3> &waves_center, glm::vec3 center_of_waves) {
+  std::vector<unsigned int> waves_VAO;
+  float r = -50;
+  std::vector<float> angles = {};
+  for (int i = 0; i < 4; i ++)
+  {
+    angles.push_back(i * 360 / 4);
+  }
+
+  float height = -1.0;
+  float base_height = -2.0f;
+  float middle_height = -10.0f;
+
+  for (const auto & angle : angles)
+  {
+
+    //float nb = rand() % 50;
+    //float nb2 = rand() % 50;
+    float nb = 4;
+    float nb2 = 8;
+//    std::cout << angle << std::endl;
+    float x_start = (r * cos((angle - nb) * PI / 180.0f));
+    float x_end = (r * cos((angle + nb2) * PI / 180.0f));
+    float y_start = (r * sin((angle - nb) * PI / 180.0f));
+    float y_end = (r * sin((angle + nb2) * PI / 180.0f));
+    glm::vec3 center_wave = glm::vec3((x_end + x_start) / 2.0f, middle_height, (y_end + y_start) / 2.0f);
+    //glm::vec3 center_wave = glm::vec3((x_end + x_start) / 2.0f, (height + base_height) / 2.0f, (y_end + y_start) / 2.0f);
+    waves_center.push_back(center_wave + center_of_waves);
+
+    /*
+    std::vector<float> vertices = {
+        // position                tex coords
+        x_start,  base_height, y_end,            1.0f, 1.0f,
+        x_end,  base_height, y_start,            0.0f, 1.0f,
+        x_end,  height, y_start,            0.0f, 0.0f,
+        x_end,  height, y_start,            0.0f, 0.0f,
+        x_start,  height, y_end,            1.0f, 0.0f,
+        x_start,  base_height, y_end,            1.0f, 1.0f
+    };*/
+
+    std::vector<float> vertices = {
+        // position                tex coords
+        -0.5f,  base_height, 0.5f,            1.0f, 1.0f,
+        0.5f,  base_height, -0.5f,            0.0f, 1.0f,
+        0.5f,  height, -0.5f,            0.0f, 0.0f,
+        0.5f,  height, -0.5f,            0.0f, 0.0f,
+        -0.5f,  height, 0.5f,            1.0f, 0.0f,
+        -0.5f,  base_height, 0.5f,            1.0f, 1.0f
+    };
+    unsigned int waveVAO, waveVBO;
+    glGenVertexArrays(1, &waveVAO);
+    glGenBuffers(1, &waveVBO);
+    glBindVertexArray(waveVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, waveVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    waves_VAO.push_back(waveVAO);
+
+  }
+
+  return waves_VAO;
+}
+/*
+void waves_instance() {
+  unsigned int instanceVBO
+}*/
