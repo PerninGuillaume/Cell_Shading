@@ -234,12 +234,6 @@ void display(GLFWwindow *window) {
       projection = glm::ortho(params.ortho_bounds[0], params.ortho_bounds[1], params.ortho_bounds[2], params.ortho_bounds[3], params.near_plane_light, params.far_plane_light);
     }
 
-    unsigned int waterVAO = water_create_VAO(params.sea_height);
-    int nb_of_waves;
-    unsigned int shoreVAO = shore_create_VAO(nb_of_waves, params.wave_height);
-
-
-
     //--------------------Windfall rendering-----------------------
 
     if (params.wireframe)

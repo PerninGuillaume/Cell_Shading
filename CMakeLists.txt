@@ -20,12 +20,8 @@ add_executable(TP1
         examples/colors.cpp
         examples/light_map.cpp
         examples/multiples_lights.cpp
-        examples/backpack.cpp
         examples/link.cpp
         examples/nordic_village.cpp
-        examples/cavern.cpp
-        examples/isometric_world.cpp
-        examples/isometric_world.cpp
         examples/windfall.cpp
         examples/skybox.cpp
         imgui-1.83/imgui.cpp
