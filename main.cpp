@@ -66,7 +66,7 @@ int main() {
     //isometric_world::display(window);
     //Display_template bomb_shop_template(window, "models/Bomb_Shop/Bomb shop.obj", false);
     //Display_template ganondorf(window, "models/Ganondorf Figurine/133.obj", false);
-    //windfall::display(window);
+    windfall::display(window);
     //skybox::display(window);
     //shadow::display(window);
     //house_of_wealth::display(window);
