@@ -5,5 +5,5 @@
 #include <GLFW/glfw3.h>
 
 namespace windfall {
-void display(GLFWwindow* window);
+void display(GLFWwindow* window, bool load_hd_texture = false);
 }

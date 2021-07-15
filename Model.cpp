@@ -23,7 +23,6 @@ void Model::loadModel(const std::string &path) {
   //const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
   if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
     std::cerr << "ERROR::ASSIMP::" << importer.GetErrorString() << std::endl;
-    //TODO maybe throw an error here
     return;
   }
   directory = path.substr(0, path.find_last_of('/'));
@@ -89,9 +88,6 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene) {
 
     material->Get(AI_MATKEY_COLOR_DIFFUSE,color);
 
-    std::vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, TextureType::SPECULAR);
-    textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
-
   }
   glm::vec3 color_glm = glm::vec3(color.r, color.g, color.b);
   if (!textures.empty()) {
@@ -129,7 +125,6 @@ std::vector<Texture> Model::loadMaterialTextures(aiMaterial *material, aiTexture
 unsigned int loadTexture(const std::string& path, const std::string& directory)
 {
   std::string filename = directory + '/' + path;
-  //std::cout << "Trying to load texture : " << filename << std::endl;
 
   unsigned int textureID;
   glGenTextures(1, &textureID);

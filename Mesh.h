@@ -9,7 +9,6 @@ struct Vertex {
 
 enum TextureType {
   DIFFUSE,
-  SPECULAR
 };
 
 struct Texture {
@@ -18,6 +17,8 @@ struct Texture {
   std::string path;
 };
 
+// This class was created following the tutorial of www.learnopengl.com
+// It was modified to satisfy our needs afterwards
 class Mesh {
  public:
   Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures, glm::vec3 color,

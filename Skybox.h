@@ -20,7 +20,6 @@ std::vector<unsigned int> loadClouds();
 
 unsigned int clouds_create_VAO();
 
-unsigned int waves_create_VAO(glm::vec3 position_camera);
-std::vector<unsigned int> waves_create_VAO_vector(glm::vec3 position_camera, std::vector<glm::vec3> &waves_center, glm::vec3 center_of_waves);
+std::vector<unsigned int> waves_create_VAO_vector(std::vector<glm::vec3> &waves_center, const glm::vec3& center_of_waves);
 
-std::vector<unsigned int> loadWaves();
+unsigned int loadWaves();

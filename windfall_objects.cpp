@@ -104,6 +104,7 @@ std::vector<unsigned int> loadShore()
 
 unsigned int shore_create_VAO(int &nb_of_points, float heightf) {
 
+  // You don't want to hear the story behind this
   std::vector<glm::vec3> points = {
       glm::vec3 (-2822.0f, 0.0f, 2894.0f),
       glm::vec3 (-2822.0f, 0.0f, 3107.0f),

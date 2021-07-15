@@ -46,6 +46,7 @@ program *init_program(const std::string& vertex_shader_filename,
 }
 
 
+// Learnopengl function
 // renderQuad() renders a 1x1 XY quad in NDC
 // -----------------------------------------
 unsigned int quadVAO = 0;

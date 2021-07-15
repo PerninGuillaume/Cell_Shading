@@ -1,3 +1,5 @@
+#pragma once
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <memory>
@@ -5,6 +7,7 @@
 #include "Camera.h"
 #include "Helper.h"
 
+// Class to quickly display a mesh with no lighting
 class Display_template {
  public:
   Display_template(GLFWwindow *window, const std::string& path, bool use_im_gui);

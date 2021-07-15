@@ -35,7 +35,6 @@ GLFWwindow* init_glfw() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
   glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
-  //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   GLFWwindow* window = glfwCreateWindow(SRC_WIDTH, SRC_HEIGHT, "The legend of POGL", NULL, NULL);
   if (window == NULL) {
     std::cout << "Failed to create GLFW window." << std::endl;
@@ -58,8 +57,8 @@ int main() {
   try {
     //link::display(window);
     //Display_template ganondorf(window, "models/Ganondorf Figurine/133.obj", false);
-    //windfall::display(window);
-    house_of_wealth::display(window);
+    windfall::display(window, false);
+    //house_of_wealth::display(window);
   } catch (const char* msg) {
     std::cerr << msg << std::endl;
   }

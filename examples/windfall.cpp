@@ -65,9 +65,7 @@ void set_im_gui_options() {
     ImGui::Begin("Windfall options");
     ImGui::Checkbox("Hd textures", &params.hd);
     if (ImGui::TreeNode("Sun")) {
-      ImGui::ColorPicker3("Border", (float*)&params.color_border);
       ImGui::ColorPicker3("Center", (float*)&params.color_center);
-      //ImGui::ColorPicker3("Inner ring", (float*)&params.color_inner_ring);
       ImGui::ColorPicker3("Gradient", (float*)&params.color_gradient);
       ImGui::SliderFloat("Sun magnification", &params.sun_magnification, 0.0f, 1000.0f);
       ImGui::SliderFloat("Lowest Eye cancer", &params.lowest_eye_cancer, 0.0f, 1.0f);
@@ -125,7 +123,7 @@ void set_im_gui_options() {
 }
 
 
-void display(GLFWwindow *window) {
+void display(GLFWwindow *window, bool load_hd_texture) {
   int SRC_WIDTH, SRC_HEIGHT;
   glfwGetWindowSize(window, &SRC_WIDTH, &SRC_HEIGHT);
   //Capture the mouse
@@ -147,6 +145,7 @@ void display(GLFWwindow *window) {
   ImGui_ImplOpenGL3_Init("#version 450");
   ImGui::StyleColorsDark();
 
+  //--------------------------------Shader setup--------------------------------------
   program *shadow_shader_depth = init_program("shaders/vertex_shadow_depth.glsl",
                                               "shaders/fragment_shadow_depth.glsl");
   program *quad_depth_shader = init_program("shaders/vertex_normalized_coord.glsl", "shaders/fragment_quad_depth.glsl");
@@ -170,9 +169,8 @@ void display(GLFWwindow *window) {
                                          "shaders/fragment_sun.glsl");
   program *program_waves = init_program("shaders/vertex_wave.glsl",
                                       "shaders/fragment_wave.glsl");
-  //stbi_set_flip_vertically_on_load(true);
-  //Model windfall = choose_windfall(true, false);
-  bool load_hd_texture = false;
+
+  //-------------------------------Model and texture loading------------------------------
   Model windfall_highres;
   if (load_hd_texture)
     windfall_highres = Model("models/textures_windfall_/textures_windfall_highres/Windfall.obj");
@@ -184,39 +182,35 @@ void display(GLFWwindow *window) {
 
   glEnable(GL_DEPTH_TEST);
 
-  //Skybox
-
+  // Skybox
   unsigned int cubemapTexture = loadSkyBox(program_skybox);
   unsigned int skyboxVAO = skyBox_create_VAO();
 
   // Water
-
   unsigned int waterVAO = water_create_VAO(params.sea_height);
-
   std::vector<unsigned int> shoreTextures = loadShore();
   int nb_of_shore_waves;
   unsigned int shoreVAO = shore_create_VAO(nb_of_shore_waves, params.wave_height);
 
-  //Zatoon
+  // Zatoon
   set_zAtoon(program_windfall);
 
   // Sun
   std::vector<unsigned int> sun_textures = loadSunTextures();
   unsigned int sunVAO = sun_create_VAO();
 
-
-  Helper helper = Helper(camera, use_im_gui);
-
   // Clouds
   std::vector<unsigned int> cloudsTextures = loadClouds();
   unsigned int cloudsVAO = clouds_create_VAO();
 
-  //waves
-  std::vector<unsigned int> wavesTextures = loadWaves();
+  // Waves
+  unsigned int wavesTexture = loadWaves();
   std::vector<glm::vec3> waves_center;
   glm::vec3 center_of_waves = glm::vec3(-3.0f, 0.0f, -20.0f);
-  std::vector<unsigned int> waves_VAO = waves_create_VAO_vector(camera->position, waves_center, center_of_waves);
+  std::vector<unsigned int> waves_VAO = waves_create_VAO_vector(waves_center, center_of_waves);
   std::vector<bool> wave_new_cycle_has_begun(waves_VAO.size(), false);
+
+  Helper helper = Helper(camera, use_im_gui);
 
   while (!glfwWindowShouldClose(window)) {
 
@@ -263,12 +257,10 @@ void display(GLFWwindow *window) {
     // --------------------------------------------------------------
     glm::mat4 lightProjection, lightView;
     glm::mat4 lightSpaceMatrix;
-    //lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane_light, far_plane_light);
     lightProjection = glm::ortho(params.ortho_bounds[0], params.ortho_bounds[1], params.ortho_bounds[2], params.ortho_bounds[3], params.near_plane_light, params.far_plane_light);
     glm::vec3 eye = glm::vec3(params.light_pos[0], params.light_pos[1], params.light_pos[2]);
     glm::vec3 center = glm::vec3(params.light_shadow_center[0], params.light_shadow_center[1], params.light_shadow_center[2]);
     glm::vec3 up = glm::vec3(0.6f, 0.02f, -0.77f);
-    //glm::vec3 center = glm::vec3(0.0f);
     lightView = glm::lookAt(eye,
                             center,
                             up);
@@ -305,8 +297,8 @@ void display(GLFWwindow *window) {
     // --------------------------------------------------------------
 
 
-    float alignment = glm::dot(camera->front, glm::vec3(0.0f, 1.0f, 0.0f));// Variable measuring by how
-    //much we are looking at the sun, 1.0f being the highest possible value
+    float alignment = glm::dot(camera->front, glm::vec3(0.0f, 1.0f, 0.0f));
+    // Variable measuring by how much we are looking at the sun, 1.0f being the highest possible value
     float alignment_limit = 0.9f; // By this value we can view the sun
     float eye_cancer = get_eye_cancer(alignment, alignment_limit, params.lowest_eye_cancer);
 
@@ -329,8 +321,6 @@ void display(GLFWwindow *window) {
     program_windfall->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
-
-    //windfall.draw(program_windfall);
 
     if (params.hd && load_hd_texture)
       windfall_highres.draw(program_windfall);
@@ -365,7 +355,6 @@ void display(GLFWwindow *window) {
       shader_normals->set_uniform_mat4("projection", projection);
       shader_normals->set_uniform_mat4("view", view);
       shader_normals->set_uniform_mat4("model", model_mat_windfall);
-      //windfall.draw(shader_normals);
 
       if (params.hd && load_hd_texture)
         windfall_highres.draw(shader_normals);
@@ -541,7 +530,7 @@ void display(GLFWwindow *window) {
         //display_glm_vec3(waves_center[i]);
         glBindVertexArray(waves_VAO[i]);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, wavesTextures[0]);
+        glBindTexture(GL_TEXTURE_2D, wavesTexture);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
       }

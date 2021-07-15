@@ -6,6 +6,8 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+// This class was created following the tutorial of www.learnopengl.com
+// It was modified to satisfy our needs afterwards
 class Model {
  public:
   Model();
@@ -20,6 +22,4 @@ class Model {
   void processNode(aiNode* node, const aiScene* scene);
   Mesh processMesh(aiMesh* mesh, const aiScene* scene);
   std::vector<Texture> loadMaterialTextures(aiMaterial *material, aiTextureType type, const TextureType& typeName);
-
-
 };

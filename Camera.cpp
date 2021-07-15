@@ -8,26 +8,6 @@ Camera::Camera(glm::vec3 position, glm::vec3 up)
   refresh_vectors();
 }
 
-void Camera::processKeyboardFPS(Camera_Movement direction, float deltaTime) {
-  const float cameraSpeed = movement_speed * deltaTime;
-  glm::vec3 front_tmp = glm::normalize(glm::vec3(front.x, 0.0f, front.z));
-  switch (direction) {
-    case Camera_Movement::FORWARD:
-      position += front_tmp * cameraSpeed;
-      break;
-    case Camera_Movement::BACKWARD:
-      position -= front_tmp * cameraSpeed;
-      break;
-    case Camera_Movement::LEFT:
-      position -= right * cameraSpeed;
-      break;
-    case Camera_Movement::RIGHT:
-      position += right * cameraSpeed;
-      break;
-  }
-
-}
-
 void Camera::processKeyboard(Camera_Movement direction, float deltaTime) {
   float cameraSpeed = movement_speed * deltaTime;
   if (shiftPressed)
@@ -91,9 +71,11 @@ void Camera::refresh_vectors() {
   up = glm::normalize(glm::cross(right, front));
 
 }
+
 void Camera::shift_pressed(bool is_pressed) {
   shiftPressed = is_pressed;
 }
+
 void Camera::ctrl_pressed(bool is_pressed) {
   ctrlPressed = is_pressed;
 }

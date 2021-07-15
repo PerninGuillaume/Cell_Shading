@@ -9,12 +9,12 @@ enum Camera_Movement {
     LEFT
 };
 
+// This class was created following the tutorial of www.learnopengl.com, it was extended afterwards for our needs
 class Camera {
 public:
     Camera(glm::vec3 position, glm::vec3 up);
 
     void processKeyboard(Camera_Movement direction, float deltaTime);
-    void processKeyboardFPS(Camera_Movement direction, float deltaTime);
     void processMouse(float xoffset, float yoffset);
     void processScroll(float yoffset);
     glm::mat4 view_matrix() const;

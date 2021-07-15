@@ -18,18 +18,14 @@ void Mesh::draw(program* program) {
   program->set_uniform_bool("use_color", use_color);
   program->set_uniform_vec3("color", color);
   unsigned int diffuse_nb = 1;
-  unsigned int specular_nb = 1;
   for (unsigned int i = 0; i < textures.size(); ++i) {
     glActiveTexture(GL_TEXTURE0 + i);
     std::string suffix;
     switch (textures[i].texture_type) {
       case DIFFUSE:suffix = "diffuse" + std::to_string(diffuse_nb++);
         break;
-      case SPECULAR:suffix = "specular" + std::to_string(specular_nb++);
-        break;
     }
     std::string name = "texture_" + suffix;
-    //std::cout << "Setting uniform : " << name << std::endl;
     program->set_uniform_float(name, i);
 
     glBindTexture(GL_TEXTURE_2D, textures[i].id);
