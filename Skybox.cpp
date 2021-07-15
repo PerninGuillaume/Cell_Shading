@@ -241,7 +241,7 @@ std::vector<unsigned int> waves_create_VAO_vector(glm::vec3 position_camera, std
   std::vector<unsigned int> waves_VAO;
   //float r = -50;
   std::vector<float> angles = {};
-  int nb_of_waves = 1600;
+  int nb_of_waves = 1000;
   for (int i = 0; i < nb_of_waves; i ++)
   {
     angles.push_back(i * 360 / nb_of_waves);
