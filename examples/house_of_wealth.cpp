@@ -23,7 +23,7 @@ std::shared_ptr<Camera> camera = std::make_shared<Camera>(glm::vec3(0.0f, 0.0f, 
 
 //Setup of different default values
 struct {
-  bool hd = false;
+  bool hd = true;
   bool with_lighting = true;
   bool wireframe = false;
   bool use_zAtoon_house = false;
@@ -31,22 +31,20 @@ struct {
   bool use_shadow = true;
   bool display_depth_map = false;
   bool no_texture = false;
-  bool display_normals = false;
-  bool flat_look = false;
   bool peter_paning = false;
   bool pcf = true;
   float shadow_bias = 0.005f;
-  float near_plane_light = 1.0f, far_plane_light = 17.5f;
+  float near_plane_light = 11.0f, far_plane_light = 17.5f;
   float light_ambient = 0.7f;
   float light_diffuse = 0.8f;
-  float light_dir[3] = {-0.3f, -0.7f, -0.3f};
+  float light_dir[3] = {0.3f, -0.7f, -0.3f};
   float light_pos[3] = {-2.0f, 4.0f, 8.681f}; //need a position for shadow
   bool contour = true;
   bool contour_wireframe = false;
   bool vertex_shifted_along_normal = false;
-  float displacement = 0.006f;
+  float displacement = 0.003f;
   float link_translation[3] = {0.0f, -0.36f, -3.571f};
-  float ganon_translation[3] = {3.55f, -2.0f, -1.2f};
+  float ganon_translation[3] = {3.153f, 5.135f, 3.929f};
   ImVec4 some_color = ImVec4(0.45f, 0.55f, 0.6f, 1.00f);
   float alpha_clip = 0.3f;
 } params;
@@ -56,7 +54,6 @@ void set_im_gui_options () {
   ImGui::Checkbox("HD", &params.hd);
   if (ImGui::TreeNode("Lighting")) {
     ImGui::Checkbox("Enable lighting", &params.with_lighting);
-    ImGui::Checkbox("Flat look", &params.flat_look);
     ImGui::SliderFloat("Light diffuse", &params.light_diffuse, 0.0f, 1.0f);
     ImGui::SliderFloat("Light ambient", &params.light_ambient, 0.0f, 1.0f);
     ImGui::SliderFloat3("Light position", params.light_pos, -10.0f, 10.0f);
@@ -72,9 +69,9 @@ void set_im_gui_options () {
     ImGui::Checkbox("Depth texture", &params.display_depth_map);
     ImGui::Checkbox("Peter Paning", &params.peter_paning);
     ImGui::Checkbox("PCF", &params.pcf);
-    ImGui::SliderFloat("Shadow bias", &params.shadow_bias, 0.0f, 0.1f);
-    ImGui::SliderFloat("Near plane light frustrum", &params.near_plane_light, 0.0f, 2.0f);
-    ImGui::SliderFloat("Far plane light frustrum", &params.far_plane_light, 10.0f, 100.0f);
+    ImGui::SliderFloat("Shadow bias", &params.shadow_bias, 0.0f, 0.02f);
+    ImGui::SliderFloat("Near plane light frustrum", &params.near_plane_light, 0.0f, 20.0f);
+    ImGui::SliderFloat("Far plane light frustrum", &params.far_plane_light, 10.0f, 20.0f);
     ImGui::TreePop();
     ImGui::Separator();
   }
@@ -251,10 +248,13 @@ void display(GLFWwindow *window, bool use_hd_texture) {
     //Render Ganondorf depth on the same texture
     glm::mat4 model_mat_ganon = glm::mat4(1.0f);
     model_mat_ganon = glm::translate(model_mat_ganon, glm::vec3(params.ganon_translation[0], params.ganon_translation[1], params.ganon_translation[2]));
-    model_mat_ganon = glm::scale(model_mat_ganon, glm::vec3(4.0f));
+    model_mat_ganon = glm::rotate(model_mat_ganon, glm::radians(-180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    model_mat_ganon = glm::scale(model_mat_ganon, glm::vec3(3.0f));
     shadow_shader_depth->set_uniform_mat4("model", model_mat_ganon);
 
+    /*
     ganondorf.draw(shadow_shader_depth);
+     */
     glCullFace(GL_BACK);//In all cases we cull the face normally (peter paning or not)
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
