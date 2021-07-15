@@ -11,19 +11,12 @@ find_package(assimp REQUIRED)
 find_package(GLM REQUIRED)
 add_executable(TP1
         main.cpp
-        matrix4.cpp
-        Vector.cpp
         program.cpp
         Mesh.cpp
         Model.cpp
         Camera.cpp
-        examples/colors.cpp
-        examples/light_map.cpp
-        examples/multiples_lights.cpp
         examples/link.cpp
-        examples/nordic_village.cpp
         examples/windfall.cpp
-        examples/skybox.cpp
         imgui-1.83/imgui.cpp
         imgui-1.83/imgui_demo.cpp
         imgui-1.83/imgui_draw.cpp
@@ -31,7 +24,6 @@ add_executable(TP1
         imgui-1.83/imgui_widgets.cpp
         imgui-1.83/backends/imgui_impl_glfw.cpp
         imgui-1.83/backends/imgui_impl_opengl3.cpp
-        examples/shadow.cpp
         Shadow.cpp
         examples/house_of_wealth.cpp
         callback.cpp

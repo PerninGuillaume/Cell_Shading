@@ -56,17 +56,10 @@ int main() {
     return 1;
 
   try {
-    //colors::display(window);
-    //light_map::display(window);
-    //multiples_lights::display(window);
     //link::display(window);
-    //nordic_village::display(window);
-    //Display_template bomb_shop_template(window, "models/Bomb_Shop/Bomb shop.obj", false);
     //Display_template ganondorf(window, "models/Ganondorf Figurine/133.obj", false);
-    windfall::display(window);
-    //skybox::display(window);
-    //shadow::display(window);
-    //house_of_wealth::display(window);
+    //windfall::display(window);
+    house_of_wealth::display(window);
   } catch (const char* msg) {
     std::cerr << msg << std::endl;
   }
