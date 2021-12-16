@@ -57,7 +57,7 @@ int main() {
   try {
     //link::display(window);
     //Display_template ganondorf(window, "models/Ganondorf Figurine/133.obj", false);
-    windfall::display(window,false);
+    windfall::display(window, false, true);
     //house_of_wealth::display(window, true);
   } catch (const char* msg) {
     std::cerr << msg << std::endl;
