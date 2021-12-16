@@ -54,12 +54,12 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
     return;
   helper->camera->processMouse(xoffset, yoffset);
 }
-void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
+void scroll_callback(GLFWwindow *window, double, double yoffset) {
   Helper* helper = get_helper(window);
   helper->camera->processScroll(yoffset);
 }
 
-void mouse_button_callback(GLFWwindow *window, int button, int action, int mods) {
+void mouse_button_callback(GLFWwindow *window, int button, int action, int) {
   Helper* helper = get_helper(window);
   if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);

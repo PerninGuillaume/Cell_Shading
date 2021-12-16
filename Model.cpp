@@ -51,7 +51,7 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene) {
   if (has_vertex_color)
     std::cout << " Color : " << mesh->mColors[0]->r << mesh->mColors[0]->g << mesh->mColors[0]->b << std::endl;
 
-  mesh->mColors;
+//  mesh->mColors;
   // Vertices
   for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
     Vertex vertex;

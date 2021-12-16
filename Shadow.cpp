@@ -1,3 +1,4 @@
+#include <iostream>
 #include "Shadow.h"
 Shadow::Shadow(unsigned int shadow_width, unsigned int shadow_height)
     : shadow_width(shadow_width)
@@ -7,7 +8,7 @@ Shadow::Shadow(unsigned int shadow_width, unsigned int shadow_height)
   generate_depth_map_frame_buffer();
 }
 //Generate depth map texture
-unsigned int Shadow::generate_depth_map_texture() {
+void Shadow::generate_depth_map_texture() {
   glGenTextures(1, &depthMapTexture);
   glBindTexture(GL_TEXTURE_2D, depthMapTexture);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadow_width, shadow_height, 0, GL_DEPTH_COMPONENT,
@@ -21,7 +22,7 @@ unsigned int Shadow::generate_depth_map_texture() {
   glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 }
 
-unsigned int Shadow::generate_depth_map_frame_buffer() {
+void Shadow::generate_depth_map_frame_buffer() {
   glGenFramebuffers(1, &depthMapFBO);
 
   glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
