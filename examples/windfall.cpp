@@ -333,6 +333,71 @@ void display_waves(program* program_waves, const std::vector<unsigned int>& wave
     }
 }
 
+void display_wind(program* program_wind, GLuint windVAO, const glm::mat4& view, const glm::mat4& projection) {
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+  static const size_t nb_blow_of_wind = 20;
+  static std::array<glm::vec3, nb_blow_of_wind> translations{};
+  static std::array<glm::vec3, nb_blow_of_wind> directions{};
+  static std::array<float, nb_blow_of_wind> time_initialized{};
+  static std::array<float, nb_blow_of_wind> time_before_next_animation{};
+  static std::array<GLint, nb_blow_of_wind> in_animation{};
+  static std::array<float, nb_blow_of_wind> animation_percentage{};
+  static std::array<float, nb_blow_of_wind> phase_vector{};
+
+  float max_rand_value = 2.f * 3.14f;
+  float total_animation_time = 3.f;
+  double time = glfwGetTime();
+  for (size_t i = 0; i < nb_blow_of_wind; ++i) {
+    float time_elapsed = time - time_initialized[i];
+    animation_percentage[i] = time_elapsed / total_animation_time;
+    if (time_elapsed < total_animation_time)
+      continue; // Not yet the time to change the position of the animation
+
+    in_animation[i] = 0;
+
+    if (time < time_before_next_animation[i])
+      continue;
+
+    in_animation[i] = 1;
+    time_initialized[i] = time;
+    time_before_next_animation[i] = time + (float)rand()/(float)(RAND_MAX) * 10.f;
+
+    int radius_max = 100;
+    int radius_min = 60;
+    float radius = (rand()%(radius_max-radius_min + 1) + radius_min);
+    float rand_angle = ((float)rand()/(float)(RAND_MAX)) * max_rand_value;
+    float x = glm::cos(rand_angle) * radius;
+    float z = glm::sin(rand_angle) * radius;
+    translations[i] = glm::vec3(-10.f + x, 5.f, -30.f + z);
+
+    float max_rand_dir_value = 0.3f;
+    float rand_dir_angle = ((float)rand()/(float)(RAND_MAX)) * max_rand_dir_value - max_rand_dir_value / 2.f;
+    directions[i] = glm::vec3(1.0f + rand_dir_angle, rand_dir_angle, rand_dir_angle);
+
+    int period_min = 1;
+    int period_max = 10;
+    phase_vector[i] = (rand()%(period_max-period_min + 1) + period_min);
+  }
+
+  program_wind->use();
+
+
+  program_wind->set_uniform_vector_vec3("offsets", translations.size(), translations.data());
+  program_wind->set_uniform_vector_vec3("directions", directions.size(), directions.data());
+  program_wind->set_uniform_vector_bool("in_animation", in_animation.size(), in_animation.data());
+  program_wind->set_uniform_vector_float("animation_percentage", animation_percentage.size(), animation_percentage.data());
+  program_wind->set_uniform_vector_float("phase_vector", phase_vector.size(), phase_vector.data());
+  glm::mat4 model_mat_wind = glm::mat4(1.0f);
+  program_wind->set_uniform_mat4("view", view);
+  program_wind->set_uniform_mat4("projection", projection);
+  program_wind->set_uniform_mat4("model", model_mat_wind);
+  glBindVertexArray(windVAO);
+  glDrawArraysInstanced(GL_POINTS, 0, 1, nb_blow_of_wind);
+
+}
+
 void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
   int SRC_WIDTH, SRC_HEIGHT;
   glfwGetWindowSize(window, &SRC_WIDTH, &SRC_HEIGHT);
@@ -560,19 +625,7 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
 
     display_waves(program_waves, waves_VAO, projection, center_of_waves, wave_new_cycle_has_begun, waves_center, wavesTexture);
 
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    program_wind->use();
-    float total_animation_time = 3.f;
-    float animation_percentage = fmod(glfwGetTime(), total_animation_time) / total_animation_time;
-    glm::mat4 model_mat_wind = glm::mat4(1.0f);
-    program_wind->set_uniform_mat4("view", view);
-    program_wind->set_uniform_mat4("projection", projection);
-    program_wind->set_uniform_mat4("model", model_mat_wind);
-    program_wind->set_uniform_float("animation_percentage", animation_percentage);
-    glBindVertexArray(windVAO);
-    glDrawArrays(GL_POINTS, 0, 1);
-
+    display_wind(program_wind, windVAO, view, projection);
 
       //------------------Depth Map----------------------------------
     if (params.display_depth_map) {

@@ -5,9 +5,7 @@
 unsigned int wind_create_VAO() {
 
   float windVertices[] = {
-      -2.0f, 5.f, -2.0f,
-      //2.0f, 5.f, -2.0f,
-      //-2.0f, 5.f, 2.0f,
+      0.f, 0.f, 0.f,
   };
 
   unsigned int windVAO, windVBO;

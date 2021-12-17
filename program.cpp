@@ -151,8 +151,39 @@ void program::set_uniform_vector_float(const std::string &var_name, size_t count
   this->use();
   glUniform1fv(uniform_location, count, pointer);
 }
+
+void program::set_uniform_vector_float(const std::string &var_name, const std::vector<float>& vec) {
+  int uniform_location = glGetUniformLocation(this->my_program_, var_name.c_str());
+  this->use();
+  glUniform1fv(uniform_location, vec.size(), vec.data());
+}
+
 void program::set_uniform_bool(const std::string &var_name, bool value) {
   int uniform_location = glGetUniformLocation(this->my_program_, var_name.c_str());
   this->use();
   glUniform1i(uniform_location, value);
+}
+
+void program::set_uniform_vector_vec3(const std::string& var_name, const std::vector<glm::vec3>& vec) {
+  int uniform_location = glGetUniformLocation(this->my_program_, var_name.c_str());
+  this->use();
+  glUniform3fv(uniform_location, vec.size(), glm::value_ptr(vec[0]));
+}
+
+void program::set_uniform_vector_vec3(const std::string& var_name, size_t size, void* data) {
+  int uniform_location = glGetUniformLocation(this->my_program_, var_name.c_str());
+  this->use();
+  glUniform3fv(uniform_location, size, static_cast<const GLfloat *>(data));
+}
+
+void program::set_uniform_vector_bool(const std::string& var_name, const std::vector<GLint>& vec) {
+  int uniform_location = glGetUniformLocation(this->my_program_, var_name.c_str());
+  this->use();
+  glUniform1iv(uniform_location, vec.size(), vec.data());
+}
+
+void program::set_uniform_vector_bool(const std::string& var_name, size_t size, void* data) {
+  int uniform_location = glGetUniformLocation(this->my_program_, var_name.c_str());
+  this->use();
+  glUniform1iv(uniform_location, size, static_cast<const GLint *>(data));
 }
