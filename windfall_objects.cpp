@@ -2,6 +2,26 @@
 #include "windfall_objects.h"
 #include "misc.h"
 
+unsigned int wind_create_VAO() {
+
+  float windVertices[] = {
+      -2.0f, 5.f, -2.0f,
+      //2.0f, 5.f, -2.0f,
+      //-2.0f, 5.f, 2.0f,
+  };
+
+  unsigned int windVAO, windVBO;
+  glGenVertexArrays(1, &windVAO);
+  glGenBuffers(1, &windVBO);
+  glBindVertexArray(windVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, windVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(windVertices), &windVertices, GL_STATIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 1, GL_FLOAT, GL_FALSE, 0, (void *) 0);
+
+  return windVAO;
+}
+
 unsigned int water_create_VAO(float heightf) {
 
  float waterVertices[] = {

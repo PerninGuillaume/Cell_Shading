@@ -3,6 +3,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
+unsigned int wind_create_VAO();
 unsigned int water_create_VAO(float height_sea);
 std::vector<unsigned int> loadSunTextures();
 unsigned int sun_create_VAO();

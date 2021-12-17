@@ -379,7 +379,8 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
                                          "shaders/fragment_sun.glsl");
   program *program_waves = init_program("shaders/vertex_wave.glsl",
                                       "shaders/fragment_wave.glsl");
-  program *program_wind = init_program("shaders/vertex_model.glsl", "shaders/fragment_black.glsl");
+  program *program_wind = init_program("shaders/vertex_wind.glsl"
+      , "shaders/fragment_wind.glsl", "shaders/geometry_wind.glsl");
 
   //-------------------------------Model and texture loading------------------------------
   Model windfall_highres;
@@ -420,6 +421,9 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
   glm::vec3 center_of_waves = glm::vec3(-3.0f, 0.0f, -20.0f);
   std::vector<unsigned int> waves_VAO = waves_create_VAO_vector(waves_center, center_of_waves);
   std::vector<bool> wave_new_cycle_has_begun(waves_VAO.size(), false);
+
+  // Wind
+  unsigned int windVAO = wind_create_VAO();
 
   Helper helper = Helper(camera, use_im_gui);
 
@@ -533,10 +537,12 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
 
+
     if (params.hd && load_hd_texture)
       windfall_highres.draw(program_windfall);
     else
       windfall_lowres.draw(program_windfall);
+
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -554,7 +560,21 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
 
     display_waves(program_waves, waves_VAO, projection, center_of_waves, wave_new_cycle_has_begun, waves_center, wavesTexture);
 
-    //------------------Depth Map----------------------------------
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    program_wind->use();
+    float total_animation_time = 3.f;
+    float animation_percentage = fmod(glfwGetTime(), total_animation_time) / total_animation_time;
+    glm::mat4 model_mat_wind = glm::mat4(1.0f);
+    program_wind->set_uniform_mat4("view", view);
+    program_wind->set_uniform_mat4("projection", projection);
+    program_wind->set_uniform_mat4("model", model_mat_wind);
+    program_wind->set_uniform_float("animation_percentage", animation_percentage);
+    glBindVertexArray(windVAO);
+    glDrawArrays(GL_POINTS, 0, 1);
+
+
+      //------------------Depth Map----------------------------------
     if (params.display_depth_map) {
 
       quad_depth_shader->use();
