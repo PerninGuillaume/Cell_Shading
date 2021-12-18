@@ -13,6 +13,7 @@ out vec3 dir;
 out int animated;
 out float anim_percentage;
 out float phase;
+out int spiral;
 
 void main()
 {
@@ -20,6 +21,7 @@ void main()
     animated = in_animation[gl_InstanceID];
     anim_percentage = animation_percentage[gl_InstanceID];
     phase = phase_vector[gl_InstanceID];
+    spiral = int(gl_InstanceID % 3 == 0);
 
     gl_Position = vec4(aPos + offsets[gl_InstanceID], 1.0);
 }

@@ -393,6 +393,7 @@ void display_wind(program* program_wind, GLuint windVAO, const glm::mat4& view, 
   program_wind->set_uniform_mat4("view", view);
   program_wind->set_uniform_mat4("projection", projection);
   program_wind->set_uniform_mat4("model", model_mat_wind);
+  program_wind->set_uniform_vec3("camera_front", camera->front);
   glBindVertexArray(windVAO);
   glDrawArraysInstanced(GL_POINTS, 0, 1, nb_blow_of_wind);
 
