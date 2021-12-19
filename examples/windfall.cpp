@@ -10,6 +10,7 @@
 #include "../Model.h"
 #include "../misc.h"
 #include "../Shadow.h"
+#include "../CascadedShadow.h"
 #include "../windfall_objects.h"
 
 #include "imgui.h"
@@ -19,6 +20,7 @@
 namespace windfall {
 
 float lastFrame = 0.0f;
+unsigned int NB_CASCADES = 2;
 
 std::shared_ptr<Camera> camera = std::make_shared<Camera>(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
@@ -29,6 +31,8 @@ struct {
   bool no_texture = false;
   bool display_normals = false;
   bool use_shadow = true;
+  int cascadeLevel = 1;
+  bool fitLightFrustrum = true;
   bool display_depth_map = false;
   bool peter_paning = false;
   bool pcf = true;
@@ -36,7 +40,7 @@ struct {
   float near_plane_light = 20.0f, far_plane_light = 90.0f;
   float light_ambient = 0.7f;
   float light_diffuse = 0.8f;
-  float light_dir[3] = {-0.3f, -0.7f, -0.3f};
+  float light_dir[3] = {0.3f, -0.57f, -0.2f};
   float light_pos[3] = {-21.0f, 49.0f, -29.0f}; //need a position for shadow
   float light_shadow_center[3] = {6.0f, 1.0f, -44.0f}; //The point the light will look at
   ImVec4 some_color = ImVec4(0.45f, 0.55f, 0.6f, 1.00f);
@@ -82,13 +86,15 @@ void set_im_gui_options(bool use_im_gui) {
 
     if (ImGui::TreeNode("Shadow")) {
       ImGui::Checkbox("Shadow", &params.use_shadow);
+      ImGui::Checkbox("FitLightFrustrum", &params.fitLightFrustrum);
       ImGui::Checkbox("Depth texture", &params.display_depth_map);
+      ImGui::SliderInt("Cascade depth texture", &params.cascadeLevel, 0, NB_CASCADES - 1);
       ImGui::Checkbox("Peter Paning", &params.peter_paning);
       ImGui::Checkbox("PCF", &params.pcf);
       ImGui::SliderFloat("Shadow bias", &params.shadow_bias, 0.0f, 0.1f);
       ImGui::SliderFloat3("Light position", params.light_pos, -100.0f, 100.0f);
       ImGui::SliderFloat3("Light shadow center", params.light_shadow_center, -100.0f, 100.0f);
-        ImGui::SliderFloat3("Light direction", params.light_dir, -1.0f, 1.0f);
+      ImGui::SliderFloat3("Light direction", params.light_dir, -1.0f, 1.0f);
 
         ImGui::TreePop();
         ImGui::Separator();
@@ -111,6 +117,93 @@ void set_im_gui_options(bool use_im_gui) {
       ImGui::Render();
       ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
   }
+}
+
+glm::mat4 computeShadow(const Shadow& shadow, Model& windfall_lowres, int SRC_WIDTH, int SRC_HEIGHT
+                               , const glm::mat4& view, const glm::mat4& projection, const glm::mat4& model_mat_windfall) {
+  glm::mat4 lightProjection, lightView;
+  glm::mat4 lightSpaceMatrix;
+  lightProjection = glm::ortho(params.ortho_bounds[0], params.ortho_bounds[1], params.ortho_bounds[2], params.ortho_bounds[3], params.near_plane_light, params.far_plane_light);
+  glm::vec3 eye = glm::vec3(params.light_pos[0], params.light_pos[1], params.light_pos[2]);
+  glm::vec3 center = glm::vec3(params.light_shadow_center[0], params.light_shadow_center[1], params.light_shadow_center[2]);
+  glm::vec3 up = glm::vec3(0.6f, 0.02f, -0.77f);
+  lightView = glm::lookAt(eye,
+                          center,
+                          up);
+
+  glm::vec3 lightDir = glm::vec3(params.light_dir[0], params.light_dir[1], params.light_dir[2]);
+  if (params.fitLightFrustrum)
+    lightSpaceMatrix= computeLightViewProjMatrix(eye, lightDir, view, projection);
+  else
+    lightSpaceMatrix = lightProjection * lightView;
+
+  glViewport(0, 0, shadow.shadow_width, shadow.shadow_height);
+  glBindFramebuffer(GL_FRAMEBUFFER, shadow.depthMapFBO);
+  glClear(GL_DEPTH_BUFFER_BIT);
+
+
+
+  shadow.shadow_shader_depth->set_uniform_mat4("model", model_mat_windfall);
+  shadow.shadow_shader_depth->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
+
+  if (params.peter_paning) {
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+  }
+  windfall_lowres.draw(shadow.shadow_shader_depth);
+  glDisable(GL_CULL_FACE);
+  glCullFace(GL_BACK);
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  // reset viewport
+
+  glViewport(0, 0, SRC_WIDTH, SRC_HEIGHT);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  return lightSpaceMatrix;
+}
+
+void computeShadowCascaded(CascadedShadow& shadow, Model& windfall_lowres, int SRC_WIDTH, int SRC_HEIGHT
+    , const glm::mat4& view, const glm::mat4& model_mat_windfall) {
+
+  glm::vec3 eye = glm::vec3(params.light_pos[0], params.light_pos[1], params.light_pos[2]);
+  glm::vec3 lightDir = glm::vec3(params.light_dir[0], params.light_dir[1], params.light_dir[2]);
+
+  glViewport(0, 0, shadow.shadow_width, shadow.shadow_height);
+
+  glBindFramebuffer(GL_FRAMEBUFFER, shadow.depthMapFBO);
+  shadow.shadow_shader_depth->set_uniform_mat4("model", model_mat_windfall);
+
+  if (params.peter_paning) {
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+  }
+
+  std::vector<float> cascades_delimitations = {0.1f, 100.0f, 300.0f};
+  for (unsigned int i = 0; i < shadow.nb_division; ++i) {
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadow.depthMapTextures[i], 0); //Bind right depth texture to render to
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+    glm::mat4 projection = glm::perspective(glm::radians(camera->fov_camera), (float)SRC_WIDTH / (float)SRC_HEIGHT,
+                                  cascades_delimitations[i], cascades_delimitations[i + 1]);
+    shadow.lightSpaceMatrix[i] = computeLightViewProjMatrix(eye, lightDir, view, projection);
+    shadow.shadow_shader_depth->set_uniform_mat4("lightSpaceMatrix", shadow.lightSpaceMatrix[i]);
+
+    windfall_lowres.draw(shadow.shadow_shader_depth);
+  }
+
+
+  glDisable(GL_CULL_FACE);
+  glCullFace(GL_BACK);
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  // reset viewport
+
+  glViewport(0, 0, SRC_WIDTH, SRC_HEIGHT);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 }
 
 void display_water(program* program_water, GLuint waterVAO, const glm::mat4& view, const glm::mat4& projection
@@ -422,8 +515,6 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
   ImGui::StyleColorsDark();
 
   //--------------------------------Shader setup--------------------------------------
-  program *shadow_shader_depth = init_program("shaders/vertex_shadow_depth.glsl",
-                                              "shaders/fragment_shadow_depth.glsl");
   program *quad_depth_shader = init_program("shaders/vertex_normalized_coord.glsl", "shaders/fragment_quad_depth.glsl");
   program *shader_normals = init_program("shaders/vertex_normals.glsl", "shaders/fragment_normals.glsl",
                                          "shaders/geometry_normals.glsl");
@@ -457,6 +548,7 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
 
   unsigned int size_shadow_texture = 4096;
   Shadow shadow = Shadow(size_shadow_texture, size_shadow_texture);
+  CascadedShadow cascaded_shadow = CascadedShadow(NB_CASCADES, size_shadow_texture, size_shadow_texture);
 
   glEnable(GL_DEPTH_TEST);
 
@@ -513,12 +605,8 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
 
     glm::mat4 view = camera->view_matrix();
     glm::mat4 projection;
-    if (!params.ortho_view) {
-      projection = glm::perspective(glm::radians(camera->fov_camera), (float)SRC_WIDTH / (float)SRC_HEIGHT,
-                                              0.1f, 1000.0f);
-    } else {
-      projection = glm::ortho(params.ortho_bounds[0], params.ortho_bounds[1], params.ortho_bounds[2], params.ortho_bounds[3], params.near_plane_light, params.far_plane_light);
-    }
+    projection = glm::perspective(glm::radians(camera->fov_camera), (float)SRC_WIDTH / (float)SRC_HEIGHT,
+                                  0.1f, 300.0f);
 
     //--------------------Windfall rendering-----------------------
 
@@ -533,48 +621,18 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
       program_windfall = program_windfall_without_lighting;
     }
 
-
-    // 1. Render depth of scene to texture (from light's perspective)
-    // --------------------------------------------------------------
-    glm::mat4 lightProjection, lightView;
-    glm::mat4 lightSpaceMatrix;
-    lightProjection = glm::ortho(params.ortho_bounds[0], params.ortho_bounds[1], params.ortho_bounds[2], params.ortho_bounds[3], params.near_plane_light, params.far_plane_light);
-    glm::vec3 eye = glm::vec3(params.light_pos[0], params.light_pos[1], params.light_pos[2]);
-    glm::vec3 center = glm::vec3(params.light_shadow_center[0], params.light_shadow_center[1], params.light_shadow_center[2]);
-    glm::vec3 up = glm::vec3(0.6f, 0.02f, -0.77f);
-    lightView = glm::lookAt(eye,
-                            center,
-                            up);
-    lightSpaceMatrix = lightProjection * lightView;
-
-    glViewport(0, 0, shadow.shadow_width, shadow.shadow_height);
-    glBindFramebuffer(GL_FRAMEBUFFER, shadow.depthMapFBO);
-    glClear(GL_DEPTH_BUFFER_BIT);
-
     glm::mat4 model_mat_windfall = glm::mat4(1.0f);
     model_mat_windfall = glm::translate(model_mat_windfall, glm::vec3(1.0f, -10.0f, -25.0f));
     model_mat_windfall = glm::scale(model_mat_windfall, glm::vec3(0.01f, 0.01f, 0.01f));
 
+    // 1. Render depth of scene to texture (from light's perspective)
+    // --------------------------------------------------------------
 
-    shadow_shader_depth->set_uniform_mat4("model", model_mat_windfall);
-    shadow_shader_depth->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
+    glm::mat4 lightSpaceMatrix = computeShadow(shadow, windfall_lowres, SRC_WIDTH, SRC_HEIGHT
+        , view, projection, model_mat_windfall);
+    computeShadowCascaded(cascaded_shadow, windfall_lowres, SRC_WIDTH, SRC_HEIGHT, view, model_mat_windfall);
 
-    if (params.peter_paning) {
-      glEnable(GL_CULL_FACE);
-      glCullFace(GL_FRONT);
-    }
-    windfall_lowres.draw(shadow_shader_depth);
-    glDisable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    // reset viewport
-
-    glViewport(0, 0, SRC_WIDTH, SRC_HEIGHT);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    // 2. render scene as normal using the generated depth/shadow map
+      // 2. render scene as normal using the generated depth/shadow map
     // --------------------------------------------------------------
 
 
@@ -636,12 +694,14 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
       quad_depth_shader->set_uniform_float("near_plane", params.near_plane_light);
       quad_depth_shader->set_uniform_float("far_plane", params.far_plane_light);
       glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
+      //glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
+      glBindTexture(GL_TEXTURE_2D, cascaded_shadow.depthMapTextures[params.cascadeLevel]);
       renderQuad();
     }
 
     set_im_gui_options(use_im_gui);
 
+    glfwGetWindowSize(window, &SRC_WIDTH, &SRC_HEIGHT);
     glfwSwapBuffers(window);
     glfwPollEvents();
 

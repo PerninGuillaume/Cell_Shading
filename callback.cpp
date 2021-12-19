@@ -1,5 +1,6 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <iostream>
 #include "Helper.h"
 
 Helper* get_helper(GLFWwindow* window) {
@@ -16,8 +17,9 @@ void processInput(GLFWwindow *window) {
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     glfwSetWindowShouldClose(window, true);
 
-  if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+  if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
     helper->camera->shift_pressed(true);
+  }
   else
     helper->camera->shift_pressed(false);
 
@@ -26,8 +28,9 @@ void processInput(GLFWwindow *window) {
   else
     helper->camera->ctrl_pressed(false);
 
-  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
     helper->camera->processKeyboard(Camera_Movement::FORWARD, helper->deltaTime);
+  }
   if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
     helper->camera->processKeyboard(Camera_Movement::BACKWARD, helper->deltaTime);
   if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)

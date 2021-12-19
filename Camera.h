@@ -27,7 +27,7 @@ public:
     const glm::vec3 worldUp; //Original up value, needed
     glm::vec3 right;
 
-    static constexpr float movement_speed = 2.5f;
+    static constexpr float movement_speed = 20.5f;
     static constexpr float mouse_sensitivity = 0.1f;
     static constexpr float max_fov = 45.0f;
 

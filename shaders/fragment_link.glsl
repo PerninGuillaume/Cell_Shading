@@ -8,8 +8,11 @@ struct DirLight {
     vec3 specular;
 };
 
+const int NB_CASCADES = 3;
+
 in vec3 Normal;
 in vec2 TexCoords;
+//in vec4 FragPosLightSpace[NB_CASCADES];
 in vec4 FragPosLightSpace;
 
 uniform DirLight dirLight;
@@ -25,6 +28,7 @@ uniform bool pcf;
 
 uniform sampler2D texture_diffuse1;
 uniform sampler2D shadowMap;
+//uniform sampler2D shadowMap[NB_CASCADES];
 
 out vec4 FragColor;
 

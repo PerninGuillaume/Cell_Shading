@@ -1,11 +1,18 @@
+#include <iomanip>
 #include <iostream>
+
 #include "Shadow.h"
+#include "misc.h"
+
 Shadow::Shadow(unsigned int shadow_width, unsigned int shadow_height)
     : shadow_width(shadow_width)
     , shadow_height(shadow_height)
 {
   generate_depth_map_texture();
   generate_depth_map_frame_buffer();
+
+  shadow_shader_depth = init_program("shaders/vertex_shadow_depth.glsl",
+                                              "shaders/fragment_shadow_depth.glsl");
 }
 //Generate depth map texture
 void Shadow::generate_depth_map_texture() {

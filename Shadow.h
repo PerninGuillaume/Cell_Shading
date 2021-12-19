@@ -8,6 +8,8 @@ class Shadow {
 
   void generate_depth_map_texture();
   void generate_depth_map_frame_buffer();
+
+  program* shadow_shader_depth;
   unsigned int depthMapTexture;
   unsigned int depthMapFBO;
   unsigned int shadow_width;
