@@ -31,7 +31,9 @@ struct {
   bool no_texture = false;
   bool display_normals = false;
   bool use_shadow = true;
-  int cascadeLevel = 1;
+  bool use_cascaded_shadow = false;
+  int cascadeLevel = 0;
+  bool cascade_show_layers = false;
   bool fitLightFrustrum = true;
   bool display_depth_map = false;
   bool peter_paning = false;
@@ -86,8 +88,10 @@ void set_im_gui_options(bool use_im_gui) {
 
     if (ImGui::TreeNode("Shadow")) {
       ImGui::Checkbox("Shadow", &params.use_shadow);
+      ImGui::Checkbox("Use cascaded shadow", &params.use_cascaded_shadow);
       ImGui::Checkbox("FitLightFrustrum", &params.fitLightFrustrum);
       ImGui::Checkbox("Depth texture", &params.display_depth_map);
+      ImGui::Checkbox("Color Cascade Layer", &params.cascade_show_layers);
       ImGui::SliderInt("Cascade depth texture", &params.cascadeLevel, 0, NB_CASCADES - 1);
       ImGui::Checkbox("Peter Paning", &params.peter_paning);
       ImGui::Checkbox("PCF", &params.pcf);
@@ -119,7 +123,7 @@ void set_im_gui_options(bool use_im_gui) {
   }
 }
 
-glm::mat4 computeShadow(const Shadow& shadow, Model& windfall_lowres, int SRC_WIDTH, int SRC_HEIGHT
+std::vector<glm::mat4> computeShadow(const Shadow& shadow, Model& windfall_lowres, int SRC_WIDTH, int SRC_HEIGHT
                                , const glm::mat4& view, const glm::mat4& projection, const glm::mat4& model_mat_windfall) {
   glm::mat4 lightProjection, lightView;
   glm::mat4 lightSpaceMatrix;
@@ -161,10 +165,10 @@ glm::mat4 computeShadow(const Shadow& shadow, Model& windfall_lowres, int SRC_WI
   glViewport(0, 0, SRC_WIDTH, SRC_HEIGHT);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  return lightSpaceMatrix;
+  return {lightSpaceMatrix};
 }
 
-void computeShadowCascaded(CascadedShadow& shadow, Model& windfall_lowres, int SRC_WIDTH, int SRC_HEIGHT
+std::vector<glm::mat4> computeShadowCascaded(CascadedShadow& shadow, Model& windfall_lowres, int SRC_WIDTH, int SRC_HEIGHT
     , const glm::mat4& view, const glm::mat4& model_mat_windfall) {
 
   glm::vec3 eye = glm::vec3(params.light_pos[0], params.light_pos[1], params.light_pos[2]);
@@ -180,15 +184,14 @@ void computeShadowCascaded(CascadedShadow& shadow, Model& windfall_lowres, int S
     glCullFace(GL_FRONT);
   }
 
-  std::vector<float> cascades_delimitations = {0.1f, 100.0f, 300.0f};
   for (unsigned int i = 0; i < shadow.nb_division; ++i) {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadow.depthMapTextures[i], 0); //Bind right depth texture to render to
     glClear(GL_DEPTH_BUFFER_BIT);
 
     glm::mat4 projection = glm::perspective(glm::radians(camera->fov_camera), (float)SRC_WIDTH / (float)SRC_HEIGHT,
-                                  cascades_delimitations[i], cascades_delimitations[i + 1]);
-    shadow.lightSpaceMatrix[i] = computeLightViewProjMatrix(eye, lightDir, view, projection);
-    shadow.shadow_shader_depth->set_uniform_mat4("lightSpaceMatrix", shadow.lightSpaceMatrix[i]);
+                                  shadow.cascades_delimitations[i], shadow.cascades_delimitations[i + 1]);
+    shadow.lightSpaceMatrices[i] = computeLightViewProjMatrix(eye, lightDir, view, projection);
+    shadow.shadow_shader_depth->set_uniform_mat4("lightSpaceMatrix", shadow.lightSpaceMatrices[i]);
 
     windfall_lowres.draw(shadow.shadow_shader_depth);
   }
@@ -204,6 +207,7 @@ void computeShadowCascaded(CascadedShadow& shadow, Model& windfall_lowres, int S
   glViewport(0, 0, SRC_WIDTH, SRC_HEIGHT);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+  return shadow.lightSpaceMatrices;
 }
 
 void display_water(program* program_water, GLuint waterVAO, const glm::mat4& view, const glm::mat4& projection
@@ -218,7 +222,7 @@ void display_water(program* program_water, GLuint waterVAO, const glm::mat4& vie
     program_water->set_uniform_bool("pcf", params.pcf);
     program_water->set_uniform_float("shadow_bias", params.shadow_bias);
     program_water->set_uniform_int("shadowMap", 0);
-    program_water->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
+    program_water->set_uniform_mat4("lightSpaceMatrices_cascade", lightSpaceMatrix);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
@@ -294,7 +298,7 @@ void display_shore(program* program_shore, const Helper& helper, GLuint shoreVAO
     program_shore->set_uniform_bool("pcf", params.pcf);
     program_shore->set_uniform_float("shadow_bias", params.shadow_bias);
     program_shore->set_uniform_int("shadowMap", 4);
-    program_shore->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
+    program_shore->set_uniform_mat4("lightSpaceMatrices_cascade", lightSpaceMatrix);
 
     glActiveTexture(GL_TEXTURE4);
     glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
@@ -628,9 +632,10 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
     // 1. Render depth of scene to texture (from light's perspective)
     // --------------------------------------------------------------
 
-    glm::mat4 lightSpaceMatrix = computeShadow(shadow, windfall_lowres, SRC_WIDTH, SRC_HEIGHT
-        , view, projection, model_mat_windfall);
-    computeShadowCascaded(cascaded_shadow, windfall_lowres, SRC_WIDTH, SRC_HEIGHT, view, model_mat_windfall);
+    std::vector<glm::mat4> lightSpaceMatrices;
+    lightSpaceMatrices = computeShadowCascaded(cascaded_shadow, windfall_lowres, SRC_WIDTH, SRC_HEIGHT, view, model_mat_windfall);
+    //lightSpaceMatrices = computeShadow(shadow, windfall_lowres, SRC_WIDTH, SRC_HEIGHT
+    //    , view, projection, model_mat_windfall);
 
       // 2. render scene as normal using the generated depth/shadow map
     // --------------------------------------------------------------
@@ -656,10 +661,23 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
     program_windfall->set_uniform_vec3("dirLight.ambient", params.light_ambient * eye_cancer);
     program_windfall->set_uniform_vec3("dirLight.diffuse", params.light_diffuse * eye_cancer);
 
-    program_windfall->set_uniform_int("shadowMap", 1);
-    program_windfall->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
+    std::vector<int> shadowMap_sampler_index;
+    for (unsigned int i = 0; i < NB_CASCADES; ++i) {
+      shadowMap_sampler_index.emplace_back(i + 1);
+    }
+    program_windfall->set_uniform_bool("color_cascade_layer", params.cascade_show_layers);
+    program_windfall->set_uniform_vector_int("shadowMap_cascade", shadowMap_sampler_index.size(), shadowMap_sampler_index.data());
+    //program_windfall->set_uniform_int("shadowMap", 1);
+    //program_windfall->set_uniform_bool("useCascadedShadow", params.use_cascaded_shadow);
+    program_windfall->set_uniform_vector_float("cascade_z_limits", cascaded_shadow.cascades_delimitations);
+    //program_windfall->set_uniform_vector_mat4("lightSpaceMatrices_cascade", lightSpaceMatrices);
+    program_windfall->set_uniform_mat4("lightSpaceMatrices_cascade0", lightSpaceMatrices[0]);
+    program_windfall->set_uniform_mat4("lightSpaceMatrices_cascade1", lightSpaceMatrices[1]);
+    //program_windfall->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrices[0]);
+    for (unsigned int i = 0; i < NB_CASCADES; ++i) {
+      glActiveTexture(GL_TEXTURE1 + i);
+      glBindTexture(GL_TEXTURE_2D, cascaded_shadow.depthMapTextures[i]);
+    }
 
 
     if (params.hd && load_hd_texture)
@@ -670,13 +688,13 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    display_water(program_water, waterVAO, view, projection, lightSpaceMatrix, shadow);
+    //display_water(program_water, waterVAO, view, projection, lightSpaceMatrix, shadow);
 
     display_normals(shader_normals, projection, view, model_mat_windfall, load_hd_texture, windfall_highres, windfall_lowres);
 
     display_skybox(program_skybox, skyboxVAO, cubemapTexture, projection);
 
-    display_shore(program_shore, helper, shoreVAO, projection, shoreTextures, lightSpaceMatrix, shadow, nb_of_shore_waves);
+    //display_shore(program_shore, helper, shoreVAO, projection, shoreTextures, lightSpaceMatrix, shadow, nb_of_shore_waves);
 
     display_sun(program_sun, sunVAO, sun_textures, projection, alignment, alignment_limit);
 

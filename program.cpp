@@ -4,6 +4,30 @@
 #include <fstream>
 #include <sstream>
 
+
+GLenum glCheckError_(const char *file, int line)
+{
+  GLenum errorCode;
+  while ((errorCode = glGetError()) != GL_NO_ERROR)
+  {
+    std::string error;
+    switch (errorCode)
+    {
+      case GL_INVALID_ENUM:                  error = "INVALID_ENUM"; break;
+      case GL_INVALID_VALUE:                 error = "INVALID_VALUE"; break;
+      case GL_INVALID_OPERATION:             error = "INVALID_OPERATION"; break;
+      case GL_STACK_OVERFLOW:                error = "STACK_OVERFLOW"; break;
+      case GL_STACK_UNDERFLOW:               error = "STACK_UNDERFLOW"; break;
+      case GL_OUT_OF_MEMORY:                 error = "OUT_OF_MEMORY"; break;
+      case GL_INVALID_FRAMEBUFFER_OPERATION: error = "INVALID_FRAMEBUFFER_OPERATION"; break;
+    }
+    std::cout << error << " | " << file << " (" << line << ")" << std::endl;
+  }
+  return errorCode;
+}
+#define glCheckError() glCheckError_(__FILE__, __LINE__)
+
+
 program::program()
 {}
 
@@ -65,7 +89,7 @@ program *program::make_program(const std::string &vertex_shader_filename, const 
 }
 
 std::string program::get_log() {
-  std::string log_final = "";
+  std::string log_final;
   for (GLint shader : this->shaders_) {
     int success;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
@@ -186,4 +210,23 @@ void program::set_uniform_vector_bool(const std::string& var_name, size_t size, 
   int uniform_location = glGetUniformLocation(this->my_program_, var_name.c_str());
   this->use();
   glUniform1iv(uniform_location, size, static_cast<const GLint *>(data));
+}
+
+void program::set_uniform_vector_int(const std::string& var_name, size_t size, void* data) {
+  int uniform_location = glGetUniformLocation(this->my_program_, var_name.c_str());
+  this->use();
+  glUniform1iv(uniform_location, size, static_cast<const GLint *>(data));
+}
+
+void program::set_uniform_vector_mat4(const std::string& var_name, const std::vector<glm::mat4>& data) {
+  this->use();
+  for (size_t i = 0; i < data.size(); ++i) {
+    std::string var_name_indexed = var_name + "[" + std::to_string(i) + "]";
+    int uniform_location = glGetUniformLocation(this->my_program_, var_name_indexed.c_str());
+    std::cout << uniform_location << ' ' << var_name_indexed << std::endl;
+
+    glUniformMatrix4fv(uniform_location, 1, GL_FALSE, glm::value_ptr(data[i]));
+    glCheckError();
+  }
+  //glCheckError();
 }

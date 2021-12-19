@@ -6,7 +6,7 @@ CascadedShadow::CascadedShadow(unsigned int nb_division, unsigned int shadow_wid
   , shadow_height(shadow_height)
 {
   depthMapTextures.resize(nb_division);
-  lightSpaceMatrix.resize(nb_division);
+  lightSpaceMatrices.resize(nb_division);
   generate_depth_map_texture();
   generate_depth_map_frame_buffer();
   shadow_shader_depth = init_program("shaders/vertex_shadow_depth.glsl",
