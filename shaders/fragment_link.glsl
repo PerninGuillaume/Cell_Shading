@@ -8,7 +8,7 @@ struct DirLight {
     vec3 specular;
 };
 
-const int NB_CASCADES = 2;
+const int NB_CASCADES = NB_CASCADES_TO_REPLACE;
 
 in vec3 Normal;
 in vec2 TexCoords;
@@ -31,7 +31,6 @@ uniform bool pcf;
 uniform bool color_cascade_layer;
 
 uniform sampler2D texture_diffuse1;
-//uniform sampler2D shadowMap;
 uniform sampler2D shadowMap_cascade[NB_CASCADES];
 
 out vec4 FragColor;
@@ -110,12 +109,15 @@ void main() {
         int layer = find_cascaded_layer();
 
         if (color_cascade_layer) {
-            if (layer == 0)
+            if (layer == NB_CASCADES)
+                debug_color = vec3(-0.5f);
+            else if (layer == 0)
                 debug_color.r = 1.0f;
             else if (layer == 1)
                 debug_color.g = 1.0f;
             else if (layer == 2)
                 debug_color.b = 1.0f;
+
         }
 
         shadow = ShadowCalculation();

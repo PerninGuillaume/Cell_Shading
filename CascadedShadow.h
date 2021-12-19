@@ -15,7 +15,7 @@ class CascadedShadow {
   unsigned int shadow_width;
   unsigned int shadow_height;
   std::vector<glm::mat4> lightSpaceMatrices;
-  std::vector<float> cascades_delimitations = {0.1f, 100.0f, 200.0f};
+  std::vector<float> cascades_delimitations = {0.1f, 10.0f, 200.0f, 250.0f};
 
 };
 

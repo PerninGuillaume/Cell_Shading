@@ -20,7 +20,7 @@
 namespace windfall {
 
 float lastFrame = 0.0f;
-unsigned int NB_CASCADES = 2;
+unsigned int NB_CASCADES = 3;
 
 std::shared_ptr<Camera> camera = std::make_shared<Camera>(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
@@ -49,6 +49,8 @@ struct {
   float alpha_clip = 0.3f;
   float offset = 0.0f;
   float offset_water = 0.0f;
+  float znear = 0.1f;
+  float zfar = 300.f;
   float ortho_bounds[4] = {-50.0f, 50.0f, -60.0f, 70.0f};
   bool ortho_view = false;
   ImVec4 color_border = ImVec4(243.0f / 255.0f, 106.0f / 255.0f, 65.0f / 255.0f, 1.0f);
@@ -60,6 +62,7 @@ struct {
   float wave_height = -10.05f;
   float sea_height = -10.267f;
   float billboard_size[2] = {5.0f, 1.0f};
+  program* program_windfall_with_lighting;
 } params;
 
 void set_im_gui_options(bool use_im_gui) {
@@ -88,7 +91,16 @@ void set_im_gui_options(bool use_im_gui) {
 
     if (ImGui::TreeNode("Shadow")) {
       ImGui::Checkbox("Shadow", &params.use_shadow);
-      ImGui::Checkbox("Use cascaded shadow", &params.use_cascaded_shadow);
+      if (ImGui::Checkbox("Use cascaded shadow", &params.use_cascaded_shadow)) {
+        if (params.use_cascaded_shadow)
+          params.program_windfall_with_lighting = init_program("shaders/vertex_link.glsl",
+                                                               "shaders/fragment_link.glsl", "",
+                                                               {{"NB_CASCADES_TO_REPLACE", std::to_string(NB_CASCADES)}});
+        else
+          params.program_windfall_with_lighting = init_program("shaders/vertex_link.glsl",
+                                                               "shaders/fragment_link.glsl", "",
+                                                               {{"NB_CASCADES_TO_REPLACE", "1"}});
+      }
       ImGui::Checkbox("FitLightFrustrum", &params.fitLightFrustrum);
       ImGui::Checkbox("Depth texture", &params.display_depth_map);
       ImGui::Checkbox("Color Cascade Layer", &params.cascade_show_layers);
@@ -526,7 +538,8 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
   program *program_windfall_without_lighting = init_program("shaders/vertex_model.glsl",
                                   "shaders/fragment_model.glsl");
   program *program_windfall_with_lighting = init_program("shaders/vertex_link.glsl",
-                                           "shaders/fragment_link.glsl");
+                                           "shaders/fragment_link.glsl", "",
+                                           {{"NB_CASCADES_TO_REPLACE", std::to_string(NB_CASCADES)}});
   program_windfall = program_windfall_with_lighting;
   program *program_skybox = init_program("shaders/vertex_skybox.glsl",
                                          "shaders/fragment_skybox.glsl");
@@ -550,9 +563,14 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
   Model windfall_lowres("models/textures_windfall_/textures_windfall_lowres/Windfall.obj");
 
 
+  // Shadow
   unsigned int size_shadow_texture = 4096;
   Shadow shadow = Shadow(size_shadow_texture, size_shadow_texture);
   CascadedShadow cascaded_shadow = CascadedShadow(NB_CASCADES, size_shadow_texture, size_shadow_texture);
+  std::vector<int> shadowMap_sampler_index;
+  for (unsigned int i = 0; i < NB_CASCADES; ++i) {
+    shadowMap_sampler_index.emplace_back(i + 1);
+  }
 
   glEnable(GL_DEPTH_TEST);
 
@@ -610,7 +628,7 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
     glm::mat4 view = camera->view_matrix();
     glm::mat4 projection;
     projection = glm::perspective(glm::radians(camera->fov_camera), (float)SRC_WIDTH / (float)SRC_HEIGHT,
-                                  0.1f, 300.0f);
+                                  params.znear, params.zfar);
 
     //--------------------Windfall rendering-----------------------
 
@@ -633,9 +651,11 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
     // --------------------------------------------------------------
 
     std::vector<glm::mat4> lightSpaceMatrices;
-    lightSpaceMatrices = computeShadowCascaded(cascaded_shadow, windfall_lowres, SRC_WIDTH, SRC_HEIGHT, view, model_mat_windfall);
-    //lightSpaceMatrices = computeShadow(shadow, windfall_lowres, SRC_WIDTH, SRC_HEIGHT
-    //    , view, projection, model_mat_windfall);
+    if (params.use_cascaded_shadow)
+      lightSpaceMatrices = computeShadowCascaded(cascaded_shadow, windfall_lowres, SRC_WIDTH, SRC_HEIGHT, view, model_mat_windfall);
+    else
+      lightSpaceMatrices = computeShadow(shadow, windfall_lowres, SRC_WIDTH, SRC_HEIGHT
+          , view, projection, model_mat_windfall);
 
       // 2. render scene as normal using the generated depth/shadow map
     // --------------------------------------------------------------
@@ -661,24 +681,22 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
     program_windfall->set_uniform_vec3("dirLight.ambient", params.light_ambient * eye_cancer);
     program_windfall->set_uniform_vec3("dirLight.diffuse", params.light_diffuse * eye_cancer);
 
-    std::vector<int> shadowMap_sampler_index;
-    for (unsigned int i = 0; i < NB_CASCADES; ++i) {
-      shadowMap_sampler_index.emplace_back(i + 1);
-    }
     program_windfall->set_uniform_bool("color_cascade_layer", params.cascade_show_layers);
     program_windfall->set_uniform_vector_int("shadowMap_cascade", shadowMap_sampler_index.size(), shadowMap_sampler_index.data());
-    //program_windfall->set_uniform_int("shadowMap", 1);
-    //program_windfall->set_uniform_bool("useCascadedShadow", params.use_cascaded_shadow);
-    program_windfall->set_uniform_vector_float("cascade_z_limits", cascaded_shadow.cascades_delimitations);
-    //program_windfall->set_uniform_vector_mat4("lightSpaceMatrices_cascade", lightSpaceMatrices);
-    program_windfall->set_uniform_mat4("lightSpaceMatrices_cascade0", lightSpaceMatrices[0]);
-    program_windfall->set_uniform_mat4("lightSpaceMatrices_cascade1", lightSpaceMatrices[1]);
-    //program_windfall->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrices[0]);
-    for (unsigned int i = 0; i < NB_CASCADES; ++i) {
-      glActiveTexture(GL_TEXTURE1 + i);
-      glBindTexture(GL_TEXTURE_2D, cascaded_shadow.depthMapTextures[i]);
-    }
 
+    if (params.use_cascaded_shadow) {
+      program_windfall->set_uniform_vector_float("cascade_z_limits", cascaded_shadow.cascades_delimitations);
+      for (unsigned int i = 0; i < NB_CASCADES; ++i) {
+        glActiveTexture(GL_TEXTURE1 + i);
+        glBindTexture(GL_TEXTURE_2D, cascaded_shadow.depthMapTextures[i]);
+      }
+    }
+    else {
+      program_windfall->set_uniform_vector_float("cascade_z_limits", {params.znear, params.zfar});
+      glActiveTexture(GL_TEXTURE1);
+      glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
+    }
+    program_windfall->set_uniform_vector_mat4("lightSpaceMatrices_cascade", lightSpaceMatrices);
 
     if (params.hd && load_hd_texture)
       windfall_highres.draw(program_windfall);
@@ -712,8 +730,10 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
       quad_depth_shader->set_uniform_float("near_plane", params.near_plane_light);
       quad_depth_shader->set_uniform_float("far_plane", params.far_plane_light);
       glActiveTexture(GL_TEXTURE0);
-      //glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
-      glBindTexture(GL_TEXTURE_2D, cascaded_shadow.depthMapTextures[params.cascadeLevel]);
+      if (params.use_cascaded_shadow)
+        glBindTexture(GL_TEXTURE_2D, cascaded_shadow.depthMapTextures[params.cascadeLevel]);
+      else
+        glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
       renderQuad();
     }
 

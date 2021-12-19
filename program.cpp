@@ -1,6 +1,7 @@
 #include "program.h"
 #include <iostream>
 #include <vector>
+#include <map>
 #include <fstream>
 #include <sstream>
 
@@ -38,18 +39,25 @@ program::~program() {
   }
 }
 
-std::string read_file(std::string filename) {
+std::string read_file(std::string filename, const std::map<std::string, std::string>& values_to_replace) {
   std::ifstream ifstream(filename);
   std::stringstream buffer;
   buffer << ifstream.rdbuf();
   std::string str = buffer.str();
+
+  for (const auto& value_to_replace : values_to_replace) {
+    auto pos = str.find(value_to_replace.first);
+    if (pos != std::string::npos)
+      str.replace(pos, value_to_replace.first.length(), value_to_replace.second);
+  }
+
   return str;
 }
 
 program *program::make_program(const std::string &vertex_shader_filename, const std::string &fragment_shader_filename,
-                               const std::string &geometry_shader_filename) {
-  const std::string vertex_shader_src = read_file(vertex_shader_filename);
-  const std::string fragment_shader_src = read_file(fragment_shader_filename);
+                               const std::string &geometry_shader_filename, const std::map<std::string, std::string>& values_to_replace) {
+  const std::string vertex_shader_src = read_file(vertex_shader_filename, values_to_replace);
+  const std::string fragment_shader_src = read_file(fragment_shader_filename, values_to_replace);
   if (vertex_shader_src.empty())
     std::cout << vertex_shader_filename << " is read to be empty !\n";
   if (fragment_shader_src.empty())
@@ -70,7 +78,7 @@ program *program::make_program(const std::string &vertex_shader_filename, const 
   glCompileShader(my_vertex_shader);
 
   if (!geometry_shader_filename.empty()) {
-    const std::string geometry_shader_src = read_file(geometry_shader_filename);
+    const std::string geometry_shader_src = read_file(geometry_shader_filename, values_to_replace);
     if (geometry_shader_src.empty())
       std::cout << geometry_shader_filename << " is read to be empty !\n";
     GLuint my_geometry_shader = glCreateShader(GL_GEOMETRY_SHADER);
@@ -220,13 +228,15 @@ void program::set_uniform_vector_int(const std::string& var_name, size_t size, v
 
 void program::set_uniform_vector_mat4(const std::string& var_name, const std::vector<glm::mat4>& data) {
   this->use();
-  for (size_t i = 0; i < data.size(); ++i) {
+  int uniform_location = glGetUniformLocation(this->my_program_, var_name.c_str());
+  glUniformMatrix4fv(uniform_location, data.size(), GL_FALSE, reinterpret_cast<const GLfloat *>(data.data()));
+  //std::cout << uniform_location << ' ' << var_name << std::endl;
+  //glCheckError();
+  /*for (size_t i = 0; i < data.size(); ++i) {
     std::string var_name_indexed = var_name + "[" + std::to_string(i) + "]";
     int uniform_location = glGetUniformLocation(this->my_program_, var_name_indexed.c_str());
-    std::cout << uniform_location << ' ' << var_name_indexed << std::endl;
 
     glUniformMatrix4fv(uniform_location, 1, GL_FALSE, glm::value_ptr(data[i]));
-    glCheckError();
-  }
+  }*/
   //glCheckError();
 }
