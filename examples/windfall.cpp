@@ -31,14 +31,15 @@ struct {
   bool no_texture = false;
   bool display_normals = false;
   bool use_shadow = true;
-  bool use_cascaded_shadow = false;
+  bool use_cascaded_shadow = true;
   int cascadeLevel = 0;
   bool cascade_show_layers = false;
-  bool fitLightFrustrum = true;
+  bool fitLightFrustrum = false;
   bool display_depth_map = false;
   bool peter_paning = false;
   bool pcf = true;
-  float shadow_bias = 0.005f;
+  int square_sample_size= 1;
+  float shadow_bias = 0.01f;
   float near_plane_light = 20.0f, far_plane_light = 90.0f;
   float light_ambient = 0.7f;
   float light_diffuse = 0.8f;
@@ -107,7 +108,8 @@ void set_im_gui_options(bool use_im_gui) {
       ImGui::SliderInt("Cascade depth texture", &params.cascadeLevel, 0, NB_CASCADES - 1);
       ImGui::Checkbox("Peter Paning", &params.peter_paning);
       ImGui::Checkbox("PCF", &params.pcf);
-      ImGui::SliderFloat("Shadow bias", &params.shadow_bias, 0.0f, 0.1f);
+      ImGui::SliderInt("nb_samples_pcf", &params.square_sample_size, 0, 15);
+      ImGui::SliderFloat("Shadow bias", &params.shadow_bias, 0.0001f, 0.2f);
       ImGui::SliderFloat3("Light position", params.light_pos, -100.0f, 100.0f);
       ImGui::SliderFloat3("Light shadow center", params.light_shadow_center, -100.0f, 100.0f);
       ImGui::SliderFloat3("Light direction", params.light_dir, -1.0f, 1.0f);
@@ -149,7 +151,7 @@ std::vector<glm::mat4> computeShadow(const Shadow& shadow, Model& windfall_lowre
 
   glm::vec3 lightDir = glm::vec3(params.light_dir[0], params.light_dir[1], params.light_dir[2]);
   if (params.fitLightFrustrum)
-    lightSpaceMatrix= computeLightViewProjMatrix(eye, lightDir, view, projection);
+    lightSpaceMatrix= computeLightViewProjMatrix(eye, lightDir, view, projection, shadow.shadow_height);
   else
     lightSpaceMatrix = lightProjection * lightView;
 
@@ -202,7 +204,7 @@ std::vector<glm::mat4> computeShadowCascaded(CascadedShadow& shadow, Model& wind
 
     glm::mat4 projection = glm::perspective(glm::radians(camera->fov_camera), (float)SRC_WIDTH / (float)SRC_HEIGHT,
                                   shadow.cascades_delimitations[i], shadow.cascades_delimitations[i + 1]);
-    shadow.lightSpaceMatrices[i] = computeLightViewProjMatrix(eye, lightDir, view, projection);
+    shadow.lightSpaceMatrices[i] = computeLightViewProjMatrix(eye, lightDir, view, projection, shadow.shadow_height, i);
     shadow.shadow_shader_depth->set_uniform_mat4("lightSpaceMatrix", shadow.lightSpaceMatrices[i]);
 
     windfall_lowres.draw(shadow.shadow_shader_depth);
@@ -674,6 +676,7 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
     program_windfall->set_uniform_bool("no_texture", params.no_texture);
     program_windfall->set_uniform_bool("use_shadow", params.use_shadow);
     program_windfall->set_uniform_bool("pcf", params.pcf);
+    program_windfall->set_uniform_int("square_sample_size", params.square_sample_size);
     program_windfall->set_uniform_float("shadow_bias", params.shadow_bias);
 
     program_windfall->set_uniform_vec3("dirLight.direction", params.light_dir[0], params.light_dir[1], params.light_dir[2]);

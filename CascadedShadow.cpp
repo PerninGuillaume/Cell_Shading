@@ -1,4 +1,7 @@
 #include "CascadedShadow.h"
+
+#include <cmath>
+#include <iostream>
 #include "misc.h"
 CascadedShadow::CascadedShadow(unsigned int nb_division, unsigned int shadow_width, unsigned int shadow_height)
   : nb_division(nb_division)
@@ -74,7 +77,8 @@ std::vector<glm::vec4> get_frustrum_world_space_coordinates(const glm::mat4& vie
   return coords_world;
 }
 
-glm::mat4 computeLightViewProjMatrix(const glm::vec3& lightPos, const glm::vec3& lightDir, const glm::mat4& view, const glm::mat4& projection) {
+glm::mat4 computeLightViewProjMatrix(const glm::vec3& lightPos, const glm::vec3& lightDir, const glm::mat4& view
+                                     , const glm::mat4& projection, unsigned int size_texture, int i) {
   auto frustrum_coords = get_frustrum_world_space_coordinates(view, projection);
 
   glm::vec3 center = glm::vec3(0, 0, 0);
@@ -107,6 +111,53 @@ glm::mat4 computeLightViewProjMatrix(const glm::vec3& lightPos, const glm::vec3&
     near =   std::min(near,   coord.z);
     far =    std::max(far,    coord.z);
   }
+
+
+  float increase_coeff = 10.f;
+  if (near < 0.f)
+    near *= increase_coeff;
+  else
+    near /= increase_coeff;
+  if (far < 0.f)
+    far /= increase_coeff;
+  else
+    far *= increase_coeff;
+
+
+  /*
+  float fbound = right - left;
+  float worldUnitsPerTexel = fbound / (float)size_texture;
+
+  left /= worldUnitsPerTexel;
+  left = std::floor(left);
+  left *= worldUnitsPerTexel;
+  left = std::floor(left);
+
+  right /= worldUnitsPerTexel;
+  right = std::floor(right);
+  right *= worldUnitsPerTexel;
+  right = std::floor(right);
+
+  fbound = top - bottom;
+  worldUnitsPerTexel = fbound / (float)size_texture;
+
+  bottom /= worldUnitsPerTexel;
+  bottom = std::floor(bottom);
+  bottom *= worldUnitsPerTexel;
+  bottom = std::floor(bottom);
+
+  top /= worldUnitsPerTexel;
+  top = std::floor(top);
+  top *= worldUnitsPerTexel;
+  top = std::floor(top);
+
+  near = std::floor(near);
+  far = std::floor(far);
+
+  if (i == 0)
+    std::cout << left << ' ' << right << ' ' << bottom << ' ' << top << ' ' << near << ' ' << far << std::endl;
+  */
+
 
   glm::mat4 lightProj = glm::ortho(left, right, bottom, top, near, far);
 

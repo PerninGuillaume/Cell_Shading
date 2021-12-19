@@ -28,6 +28,7 @@ uniform float cascade_z_limits[NB_CASCADES + 1]; // example value for nb_cascade
 uniform bool use_color;
 uniform bool no_texture;
 uniform bool pcf;
+uniform int square_sample_size;
 uniform bool color_cascade_layer;
 
 uniform sampler2D texture_diffuse1;
@@ -49,7 +50,7 @@ int find_cascaded_layer() {
     return NB_CASCADES;
 }
 
-float ShadowCalculation()
+float ShadowCalculation(vec3 normal)
 {
     int layer = find_cascaded_layer();
     if (layer == NB_CASCADES)
@@ -67,22 +68,27 @@ float ShadowCalculation()
     // get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
     // check whether current frag pos is in shadow
+    vec3 lightDir = normalize(-dirLight.direction);
+    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+    bias *= shadow_bias;
+    //bias *= 1 / (cascade_z_limits[layer] * 0.5f);
     // PCF
     float shadow;
     if (pcf) {
         shadow = 0.0;
+        float nb_samples = pow(square_sample_size * 2 + 1, 2);
         vec2 texelSize = 1.0 / textureSize(shadowMap_cascade[layer], 0);
-        for (int x = -1; x <= 1; ++x)
+        for (int x = -square_sample_size; x <= square_sample_size; ++x)
         {
-            for (int y = -1; y <= 1; ++y)
+            for (int y = -square_sample_size; y <= square_sample_size; ++y)
             {
                 float pcfDepth = texture(shadowMap_cascade[layer], projCoords.xy + vec2(x, y) * texelSize).r;
-                shadow += currentDepth - shadow_bias > pcfDepth  ? 1.0 : 0.0;
+                shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;
             }
         }
-        shadow /= 9.0f;
+        shadow /= float(nb_samples);
     } else {
-        shadow = currentDepth - shadow_bias > closestDepth  ? 1.0 : 0.0;
+        shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
     }
 
     return shadow;
@@ -112,15 +118,15 @@ void main() {
             if (layer == NB_CASCADES)
                 debug_color = vec3(-0.5f);
             else if (layer == 0)
-                debug_color.r = 1.0f;
+                debug_color.r = 0.1f;
             else if (layer == 1)
-                debug_color.g = 1.0f;
+                debug_color.g = 0.1f;
             else if (layer == 2)
-                debug_color.b = 1.0f;
+                debug_color.b = 0.1f;
 
         }
 
-        shadow = ShadowCalculation();
+        shadow = ShadowCalculation(normal);
     }
     vec3 result = CalcDirLight(dirLight, normal, col, shadow);
 
