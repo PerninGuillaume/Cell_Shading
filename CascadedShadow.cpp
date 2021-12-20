@@ -78,7 +78,7 @@ std::vector<glm::vec4> get_frustrum_world_space_coordinates(const glm::mat4& vie
 }
 
 glm::mat4 computeLightViewProjMatrix(const glm::vec3& lightPos, const glm::vec3& lightDir, const glm::mat4& view
-                                     , const glm::mat4& projection, unsigned int size_texture, float increase_coeff, int i) {
+                                     , const glm::mat4& projection, float increase_coeff_z, float increase_coeff_xy) {
   auto frustrum_coords = get_frustrum_world_space_coordinates(view, projection);
 
   glm::vec3 frustrum_center = glm::vec3(0, 0, 0);
@@ -86,51 +86,9 @@ glm::mat4 computeLightViewProjMatrix(const glm::vec3& lightPos, const glm::vec3&
     frustrum_center += glm::vec3(coord_world);
   }
   frustrum_center /= frustrum_coords.size();
-  //glm::vec3 lookDir = glm::normalize(frustrum_center - lightDir);
+
   glm::vec3 lookDir = frustrum_center - lightDir;
   glm::mat4 lightView = glm::lookAt(lookDir, frustrum_center, glm::vec3(0.f, 1.f, 0.f));
-  /*lightView = glm::mat4(1.0f, 0.f, 0.f, 0.f,
-                        0.f, 0.f, 0.f, 0.f,
-                        -lookDir.x, -lookDir.y, -lookDir.z, 0.f,
-                        );*/
-  //glm::mat4 lightView = glm::lookAt(lightPos, frustrum_center, glm::vec3(0.f, 1.f, 0.f));
-
-
-  //Get the longest radius in world space
-  float radius = 0.0f;
-  for (auto& frustrum_corners_ws : frustrum_coords) {
-    GLfloat distance = glm::length(frustrum_corners_ws[i] - frustrum_center);
-    radius = std::max(radius, distance);
-  }
-  radius = std::ceil(radius);
-
-  //Create the AABB from the radius
-  glm::vec3 maxOrtho = frustrum_center + glm::vec3(radius);
-  glm::vec3 minOrtho = frustrum_center - glm::vec3(radius);
-
-
-  maxOrtho = lightView * glm::vec4(maxOrtho, 1.0f);
-  minOrtho = lightView * glm::vec4(minOrtho, 1.0f);
-
-  glm::mat4 lightProj_bounding_sphere = glm::ortho(minOrtho.x, maxOrtho.x, minOrtho.y, maxOrtho.y, minOrtho.z, maxOrtho.z);
-  // Create the rounding matrix, by projecting the world-space origin and determining
-  // the fractional offset in texel space
-  glm::mat4 shadowMatrix = lightProj_bounding_sphere * lightView;
-  glm::vec4 shadowOrigin = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-  shadowOrigin = shadowMatrix * shadowOrigin;
-  shadowOrigin = shadowOrigin * (float)size_texture / 2.0f;
-
-  glm::vec4 roundedOrigin = glm::round(shadowOrigin);
-  glm::vec4 roundOffset = roundedOrigin - shadowOrigin;
-  roundOffset = roundOffset *  2.0f / (float)size_texture;
-  roundOffset.z = 0.0f;
-  roundOffset.w = 0.0f;
-
-  glm::mat4 shadowProj = lightProj_bounding_sphere;
-  shadowProj[3] += roundOffset;
-  lightProj_bounding_sphere = shadowProj;
-  //return lightProj_bounding_sphere * lightView;
-
 
   for (auto& coord_world : frustrum_coords) {
     coord_world = lightView * coord_world;
@@ -155,48 +113,33 @@ glm::mat4 computeLightViewProjMatrix(const glm::vec3& lightPos, const glm::vec3&
 
 
   if (near < 0.f)
-    near *= increase_coeff;
+    near *= increase_coeff_z;
   else
-    near /= increase_coeff;
+    near /= increase_coeff_z;
   if (far < 0.f)
-    far /= increase_coeff;
+    far /= increase_coeff_z;
   else
-    far *= increase_coeff;
+    far *= increase_coeff_z;
 
 
-  /*
-  float fbound = right - left;
-  float worldUnitsPerTexel = fbound / (float)size_texture;
 
-  left /= worldUnitsPerTexel;
-  left = std::floor(left);
-  left *= worldUnitsPerTexel;
-  left = std::floor(left);
+  if (bottom < 0.f)
+    bottom *= increase_coeff_xy;
+  else
+    bottom /= increase_coeff_xy;
+  if (top < 0.f)
+    top /= increase_coeff_xy;
+  else
+    top *= increase_coeff_xy;
 
-  right /= worldUnitsPerTexel;
-  right = std::floor(right);
-  right *= worldUnitsPerTexel;
-  right = std::floor(right);
-
-  fbound = top - bottom;
-  worldUnitsPerTexel = fbound / (float)size_texture;
-
-  bottom /= worldUnitsPerTexel;
-  bottom = std::floor(bottom);
-  bottom *= worldUnitsPerTexel;
-  bottom = std::floor(bottom);
-
-  top /= worldUnitsPerTexel;
-  top = std::floor(top);
-  top *= worldUnitsPerTexel;
-  top = std::floor(top);
-
-  near = std::floor(near);
-  far = std::floor(far);
-
-  if (i == 0)
-    std::cout << left << ' ' << right << ' ' << bottom << ' ' << top << ' ' << near << ' ' << far << std::endl;
-  */
+  if (left < 0.f)
+    left *= increase_coeff_xy;
+  else
+    left /= increase_coeff_xy;
+  if (right < 0.f)
+    right/= increase_coeff_xy;
+  else
+    right *= increase_coeff_xy;
 
 
   glm::mat4 lightProj = glm::ortho(left, right, bottom, top, near, far);

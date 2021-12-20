@@ -32,7 +32,7 @@ struct {
   bool display_normals = false;
   bool use_shadow = true;
   bool use_cascaded_shadow = true;
-  bool blend_between_cascade = false;
+  bool blend_between_cascade = true;
   int cascadeLevel = 0;
   bool cascade_show_layers = false;
   bool fitLightFrustrum = false;
@@ -40,13 +40,13 @@ struct {
   bool peter_paning = false;
   bool pcf = true;
   int square_sample_size= 2;
-  float shadow_bias = 0.078;
+  float shadow_bias = 0.125;
   std::vector<float> shadow_biases = {0.268f, 0.088f, 0.049f};
-  float coeff_increase_shadow_frustum = 2.059f;
+  float coeff_increase_shadow_frustum_z = 2.350f;
+  float coeff_increase_shadow_frustum_xy = 1.2f;
   float near_plane_light = 20.0f, far_plane_light = 90.0f;
   float light_ambient = 0.7f;
   float light_diffuse = 0.8f;
-  float light_dir[3] = {0.3f, -0.57f, -0.2f};
   float light_pos[3] = {-21.0f, 49.0f, -29.0f}; //need a position for shadow
   float light_shadow_center[3] = {6.0f, 1.0f, -44.0f}; //The point the light will look at
   ImVec4 some_color = ImVec4(0.45f, 0.55f, 0.6f, 1.00f);
@@ -115,10 +115,10 @@ void set_im_gui_options(bool use_im_gui) {
       ImGui::SliderInt("nb_samples_pcf", &params.square_sample_size, 0, 15);
       ImGui::SliderFloat("Shadow bias", &params.shadow_bias, 0.0001f, 0.2f);
       ImGui::SliderFloat3("Shadow biases", params.shadow_biases.data(), 0.001f, 0.4f);
-      ImGui::SliderFloat("coeff_increase_shadow_frustum", &params.coeff_increase_shadow_frustum, 1.f, 5.f);
+      ImGui::SliderFloat("increase_shadow_frustum_z", &params.coeff_increase_shadow_frustum_z, 1.f, 5.f);
+      ImGui::SliderFloat("increase_shadow_frustum_xy", &params.coeff_increase_shadow_frustum_xy, 1.f, 5.f);
       ImGui::SliderFloat3("Light position", params.light_pos, -100.0f, 100.0f);
       ImGui::SliderFloat3("Light shadow center", params.light_shadow_center, -100.0f, 100.0f);
-      ImGui::SliderFloat3("Light direction", params.light_dir, -1.0f, 1.0f);
 
         ImGui::TreePop();
         ImGui::Separator();
@@ -144,7 +144,7 @@ void set_im_gui_options(bool use_im_gui) {
 }
 
 std::vector<glm::mat4> computeShadow(const Shadow& shadow, Model& windfall_lowres, int SRC_WIDTH, int SRC_HEIGHT
-                               , const glm::mat4& view, const glm::mat4& projection, const glm::mat4& model_mat_windfall) {
+                               , const glm::mat4& view, const glm::mat4& projection, const glm::vec3& lightDir, const glm::mat4& model_mat_windfall) {
   glm::mat4 lightProjection, lightView;
   glm::mat4 lightSpaceMatrix;
   lightProjection = glm::ortho(params.ortho_bounds[0], params.ortho_bounds[1], params.ortho_bounds[2], params.ortho_bounds[3], params.near_plane_light, params.far_plane_light);
@@ -155,9 +155,8 @@ std::vector<glm::mat4> computeShadow(const Shadow& shadow, Model& windfall_lowre
                           center,
                           up);
 
-  glm::vec3 lightDir = glm::vec3(params.light_dir[0], params.light_dir[1], params.light_dir[2]);
   if (params.fitLightFrustrum)
-    lightSpaceMatrix= computeLightViewProjMatrix(eye, lightDir, view, projection, shadow.shadow_height, params.coeff_increase_shadow_frustum);
+    lightSpaceMatrix= computeLightViewProjMatrix(eye, lightDir, view, projection, params.coeff_increase_shadow_frustum_z, params.coeff_increase_shadow_frustum_xy);
   else
     lightSpaceMatrix = lightProjection * lightView;
 
@@ -190,10 +189,9 @@ std::vector<glm::mat4> computeShadow(const Shadow& shadow, Model& windfall_lowre
 }
 
 std::vector<glm::mat4> computeShadowCascaded(CascadedShadow& shadow, Model& windfall_lowres, int SRC_WIDTH, int SRC_HEIGHT
-    , const glm::mat4& view, const glm::mat4& model_mat_windfall) {
+    , const glm::mat4& view, const glm::vec3& lightDir, const glm::mat4& model_mat_windfall) {
 
   glm::vec3 eye = glm::vec3(params.light_pos[0], params.light_pos[1], params.light_pos[2]);
-  glm::vec3 lightDir = glm::vec3(params.light_dir[0], params.light_dir[1], params.light_dir[2]);
 
   glViewport(0, 0, shadow.shadow_width, shadow.shadow_height);
 
@@ -211,7 +209,7 @@ std::vector<glm::mat4> computeShadowCascaded(CascadedShadow& shadow, Model& wind
 
     glm::mat4 projection = glm::perspective(glm::radians(camera->fov_camera), (float)SRC_WIDTH / (float)SRC_HEIGHT,
                                   shadow.cascades_delimitations[i], shadow.cascades_delimitations[i + 1]);
-    shadow.lightSpaceMatrices[i] = computeLightViewProjMatrix(eye, lightDir, view, projection, shadow.shadow_height, params.coeff_increase_shadow_frustum, i);
+    shadow.lightSpaceMatrices[i] = computeLightViewProjMatrix(eye, lightDir, view, projection, params.coeff_increase_shadow_frustum_z, params.coeff_increase_shadow_frustum_xy);
     shadow.shadow_shader_depth->set_uniform_mat4("lightSpaceMatrix", shadow.lightSpaceMatrices[i]);
     shadow.shadow_shader_depth->set_uniform_float("alpha_clip", params.alpha_clip);
 
@@ -660,12 +658,15 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
     // 1. Render depth of scene to texture (from light's perspective)
     // --------------------------------------------------------------
 
+    glm::vec3 lightDir = glm::vec3(params.light_shadow_center[0] - params.light_pos[0], params.light_shadow_center[1] - params.light_pos[1]
+        , params.light_shadow_center[2] - params.light_pos[2]);
+    lightDir = glm::normalize(lightDir);
     std::vector<glm::mat4> lightSpaceMatrices;
     if (params.use_cascaded_shadow)
-      lightSpaceMatrices = computeShadowCascaded(cascaded_shadow, windfall_lowres, SRC_WIDTH, SRC_HEIGHT, view, model_mat_windfall);
+      lightSpaceMatrices = computeShadowCascaded(cascaded_shadow, windfall_lowres, SRC_WIDTH, SRC_HEIGHT, view, lightDir, model_mat_windfall);
     else
       lightSpaceMatrices = computeShadow(shadow, windfall_lowres, SRC_WIDTH, SRC_HEIGHT
-          , view, projection, model_mat_windfall);
+          , view, projection, lightDir, model_mat_windfall);
 
       // 2. render scene as normal using the generated depth/shadow map
     // --------------------------------------------------------------
@@ -687,7 +688,7 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
     program_windfall->set_uniform_int("square_sample_size", params.square_sample_size);
     program_windfall->set_uniform_float("shadow_bias", params.shadow_bias);
 
-    program_windfall->set_uniform_vec3("dirLight.direction", params.light_dir[0], params.light_dir[1], params.light_dir[2]);
+    program_windfall->set_uniform_vec3("dirLight.direction", lightDir);
 
     program_windfall->set_uniform_vec3("dirLight.ambient", params.light_ambient * eye_cancer);
     program_windfall->set_uniform_vec3("dirLight.diffuse", params.light_diffuse * eye_cancer);

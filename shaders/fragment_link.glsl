@@ -77,7 +77,7 @@ void compute_percentage_sampling_shadow_map(int layer) {
         //percentage_in_current_band = percentage_in_current_cascade * 0.5f / band_blend_percentage + 0.5f;
 
         if (color_cascade_layer)
-            debug_color[0] = percentage_in_current_band;
+            debug_color -= vec3(0.5f);
 
         percentage_sampling[0] = percentage_in_current_band;
         percentage_sampling[1] = 1.f - percentage_in_current_band;
@@ -92,7 +92,7 @@ void compute_percentage_sampling_shadow_map(int layer) {
         //percentage_in_current_band = (percentage_in_current_cascade - inverse_band_blend_percentage) * 0.5f / band_blend_percentage;
 
         if (color_cascade_layer)
-            debug_color[1] = percentage_in_current_band;
+            debug_color -= vec3(0.5f);
 
         percentage_sampling[0] = 1.f - percentage_in_current_band;
         percentage_sampling[1] = percentage_in_current_band;
@@ -100,8 +100,8 @@ void compute_percentage_sampling_shadow_map(int layer) {
         layer_index_sampling[1] = layer + 1;
     }
     else {
-        if (color_cascade_layer)
-            debug_color[2] = percentage_in_current_cascade;
+        //if (color_cascade_layer)
+        //    debug_color[2] = percentage_in_current_cascade;
         layer_index_sampling[0] = layer;
         layer_index_sampling[1] = -1;
         percentage_sampling[0] = 1.f;
@@ -188,24 +188,20 @@ void main() {
     if (use_shadow) {
         int layer = find_cascaded_layer();
 
-        shadow = ShadowCalculation(normal);
 
         if (color_cascade_layer) {
-            if (blend_between_cascade) {
-                FragColor = vec4(debug_color.r, debug_color.g, debug_color.b, 1.f);
-                return;
-            }
 
             if (layer == NB_CASCADES)
                 debug_color = vec3(-0.5f);
             else if (layer == 0)
-                debug_color.r = 0.1f;
+                debug_color.r += 0.2f;
             else if (layer == 1)
-                debug_color.g = 0.1f;
+                debug_color.g += 0.2f;
             else if (layer == 2)
-                debug_color.b = 0.1f;
+                debug_color.b += 0.2f;
 
         }
+        shadow = ShadowCalculation(normal);
     }
     vec3 result = CalcDirLight(dirLight, normal, col, shadow);
 
