@@ -46,7 +46,6 @@ program *init_program(const std::string& vertex_shader_filename,
   return program;
 }
 
-
 // Learnopengl function
 // renderQuad() renders a 1x1 XY quad in NDC
 // -----------------------------------------
@@ -75,6 +74,35 @@ void renderQuad()
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
   }
   glBindVertexArray(quadVAO);
+  glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+  glBindVertexArray(0);
+}
+
+unsigned int quadVAO_corner = 0;
+unsigned int quadVBO_corner;
+void renderQuad_corner()
+{
+  if (quadVAO_corner == 0)
+  {
+    float quadVertices[] = {
+        // positions        // texture Coords
+        -.2f,  1.0f, 0.0f, 0.0f, 1.0f,
+        -.2f, 0.4f, 0.0f, 0.0f, 0.0f,
+        1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+        1.0f, 0.4f, 0.0f, 1.0f, 0.0f,
+    };
+    // setup plane VAO
+    glGenVertexArrays(1, &quadVAO_corner);
+    glGenBuffers(1, &quadVBO_corner);
+    glBindVertexArray(quadVAO_corner);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO_corner);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+  }
+  glBindVertexArray(quadVAO_corner);
   glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
   glBindVertexArray(0);
 }

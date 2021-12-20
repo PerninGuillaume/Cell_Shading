@@ -15,10 +15,10 @@ class CascadedShadow {
   unsigned int shadow_width;
   unsigned int shadow_height;
   std::vector<glm::mat4> lightSpaceMatrices;
-  std::vector<float> cascades_delimitations = {0.1f, 30.0f, 100.0f, 250.0f};
+  std::vector<float> cascades_delimitations = {0.1f, 10.0f, 100.0f, 250.0f};
 
 };
 
 std::vector<glm::vec4> get_frustrum_world_space_coordinates(const glm::mat4& view, const glm::mat4& projection);
 glm::mat4 computeLightViewProjMatrix(const glm::vec3& lightPos, const glm::vec3& lightDir, const glm::mat4& view
-                                     , const glm::mat4& projection, unsigned int size_texture, int i=0);
+                                     , const glm::mat4& projection, unsigned int size_texture, float increase_coeff, int i=0);

@@ -25,17 +25,20 @@ uniform float shadow_bias;
 uniform bool use_zAtoon;
 uniform bool use_shadow;
 uniform float cascade_z_limits[NB_CASCADES + 1]; // example value for nb_cascades = 2 : [0.1f, 100.f, 1000.f]
+uniform float shadow_biases[NB_CASCADES];
 uniform bool use_color;
 uniform bool no_texture;
 uniform bool pcf;
 uniform int square_sample_size;
 uniform bool color_cascade_layer;
+uniform bool blend_between_cascade;
 
 uniform sampler2D texture_diffuse1;
 uniform sampler2D shadowMap_cascade[NB_CASCADES];
 
 out vec4 FragColor;
 
+vec3 debug_color = vec3(0.f);
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 col, float shadow);
 
 // This function finds in which part of the divided camera frustrum the current fragment is in.
@@ -50,11 +53,64 @@ int find_cascaded_layer() {
     return NB_CASCADES;
 }
 
-float ShadowCalculation(vec3 normal)
+float percentage_sampling[2];
+int layer_index_sampling[2];
+
+void compute_percentage_sampling_shadow_map(int layer) {
+    vec4 FragPosViewSpace_homegeneous = view * vec4(FragPosWorldSpace, 1.0f);
+    vec3 FragPosViewSpace = FragPosViewSpace_homegeneous.xyz / FragPosViewSpace_homegeneous.w; // Don't think that is useful as the view does not change the 4th component
+    float depth = abs(FragPosViewSpace.z); // abs useful ?
+
+    float band_blend_percentage = 0.05f;
+    float extent_z_current_cascade = cascade_z_limits[layer + 1] - cascade_z_limits[layer];
+    float size_current_band_blend = extent_z_current_cascade * band_blend_percentage;
+    float percentage_in_current_cascade = (depth - cascade_z_limits[layer]) / extent_z_current_cascade;
+    float inverse_band_blend_percentage = 1.f - band_blend_percentage;
+
+    if (percentage_in_current_cascade < band_blend_percentage && layer != 0) { // Just after beginning of cascade
+        //if (color_cascade_layer)
+        //    debug_color -= vec3(0.5f);
+
+        float size_previous_band_blend = (cascade_z_limits[layer] - cascade_z_limits[layer - 1]) * band_blend_percentage;
+        float percentage_in_current_band = (depth - cascade_z_limits[layer] + size_previous_band_blend) / (size_current_band_blend + size_previous_band_blend);
+        // map from [0,0.05] to [0.5,1.0]
+        //percentage_in_current_band = percentage_in_current_cascade * 0.5f / band_blend_percentage + 0.5f;
+
+        if (color_cascade_layer)
+            debug_color[0] = percentage_in_current_band;
+
+        percentage_sampling[0] = percentage_in_current_band;
+        percentage_sampling[1] = 1.f - percentage_in_current_band;
+        layer_index_sampling[0] = layer;
+        layer_index_sampling[1] = layer - 1;
+    }
+    else if (percentage_in_current_cascade > inverse_band_blend_percentage && layer != NB_CASCADES - 1) { // Just before beginning of cascade
+
+        float size_next_band_blend = (cascade_z_limits[layer + 2] - cascade_z_limits[layer + 1]) * band_blend_percentage;
+        float percentage_in_current_band = (depth - (cascade_z_limits[layer + 1] - size_current_band_blend)) / (size_current_band_blend + size_next_band_blend);
+        // map from [0.95,1.0] to [0,0.5]
+        //percentage_in_current_band = (percentage_in_current_cascade - inverse_band_blend_percentage) * 0.5f / band_blend_percentage;
+
+        if (color_cascade_layer)
+            debug_color[1] = percentage_in_current_band;
+
+        percentage_sampling[0] = 1.f - percentage_in_current_band;
+        percentage_sampling[1] = percentage_in_current_band;
+        layer_index_sampling[0] = layer;
+        layer_index_sampling[1] = layer + 1;
+    }
+    else {
+        if (color_cascade_layer)
+            debug_color[2] = percentage_in_current_cascade;
+        layer_index_sampling[0] = layer;
+        layer_index_sampling[1] = -1;
+        percentage_sampling[0] = 1.f;
+        percentage_sampling[1] = 0.f;
+    }
+}
+
+float shadow_percentage(int layer, vec3 normal)
 {
-    int layer = find_cascaded_layer();
-    if (layer == NB_CASCADES)
-        return 0.0; // Depth behind all Shadow layer
     vec4 fragPosLightSpace = FragPosLightSpace_cascade[layer];
 
     // perform perspective divide
@@ -70,8 +126,7 @@ float ShadowCalculation(vec3 normal)
     // check whether current frag pos is in shadow
     vec3 lightDir = normalize(-dirLight.direction);
     float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
-    bias *= shadow_bias;
-    //bias *= 1 / (cascade_z_limits[layer] * 0.5f);
+    bias *= shadow_biases[layer];
     // PCF
     float shadow;
     if (pcf) {
@@ -86,12 +141,32 @@ float ShadowCalculation(vec3 normal)
                 shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;
             }
         }
-        shadow /= float(nb_samples);
+        shadow /= nb_samples;
     } else {
         shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
     }
 
     return shadow;
+}
+
+float ShadowCalculation(vec3 normal)
+{
+    int layer = find_cascaded_layer();
+    if (layer == NB_CASCADES)
+        return 0.0; // Depth behind all Shadow layer
+
+    if (!blend_between_cascade)
+        return shadow_percentage(layer, normal);
+
+    compute_percentage_sampling_shadow_map(layer);
+
+    float total_shadow = 0.f;
+    total_shadow += percentage_sampling[0] * shadow_percentage(layer_index_sampling[0], normal);
+    if (layer_index_sampling[1] != -1)
+        total_shadow += percentage_sampling[1] * shadow_percentage(layer_index_sampling[1], normal);
+
+
+    return total_shadow;
 }
 
 void main() {
@@ -110,11 +185,17 @@ void main() {
     }
     vec3 normal = normalize(Normal);
     float shadow = 0.0f;
-    vec3 debug_color = vec3(0.f);
     if (use_shadow) {
         int layer = find_cascaded_layer();
 
+        shadow = ShadowCalculation(normal);
+
         if (color_cascade_layer) {
+            if (blend_between_cascade) {
+                FragColor = vec4(debug_color.r, debug_color.g, debug_color.b, 1.f);
+                return;
+            }
+
             if (layer == NB_CASCADES)
                 debug_color = vec3(-0.5f);
             else if (layer == 0)
@@ -125,8 +206,6 @@ void main() {
                 debug_color.b = 0.1f;
 
         }
-
-        shadow = ShadowCalculation(normal);
     }
     vec3 result = CalcDirLight(dirLight, normal, col, shadow);
 

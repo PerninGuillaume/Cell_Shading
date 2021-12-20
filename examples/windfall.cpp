@@ -32,14 +32,17 @@ struct {
   bool display_normals = false;
   bool use_shadow = true;
   bool use_cascaded_shadow = true;
+  bool blend_between_cascade = false;
   int cascadeLevel = 0;
   bool cascade_show_layers = false;
   bool fitLightFrustrum = false;
   bool display_depth_map = false;
   bool peter_paning = false;
   bool pcf = true;
-  int square_sample_size= 1;
-  float shadow_bias = 0.01f;
+  int square_sample_size= 2;
+  float shadow_bias = 0.078;
+  std::vector<float> shadow_biases = {0.268f, 0.088f, 0.049f};
+  float coeff_increase_shadow_frustum = 2.059f;
   float near_plane_light = 20.0f, far_plane_light = 90.0f;
   float light_ambient = 0.7f;
   float light_diffuse = 0.8f;
@@ -102,6 +105,7 @@ void set_im_gui_options(bool use_im_gui) {
                                                                "shaders/fragment_link.glsl", "",
                                                                {{"NB_CASCADES_TO_REPLACE", "1"}});
       }
+      ImGui::Checkbox("blend_between_cascade", &params.blend_between_cascade);
       ImGui::Checkbox("FitLightFrustrum", &params.fitLightFrustrum);
       ImGui::Checkbox("Depth texture", &params.display_depth_map);
       ImGui::Checkbox("Color Cascade Layer", &params.cascade_show_layers);
@@ -110,6 +114,8 @@ void set_im_gui_options(bool use_im_gui) {
       ImGui::Checkbox("PCF", &params.pcf);
       ImGui::SliderInt("nb_samples_pcf", &params.square_sample_size, 0, 15);
       ImGui::SliderFloat("Shadow bias", &params.shadow_bias, 0.0001f, 0.2f);
+      ImGui::SliderFloat3("Shadow biases", params.shadow_biases.data(), 0.001f, 0.4f);
+      ImGui::SliderFloat("coeff_increase_shadow_frustum", &params.coeff_increase_shadow_frustum, 1.f, 5.f);
       ImGui::SliderFloat3("Light position", params.light_pos, -100.0f, 100.0f);
       ImGui::SliderFloat3("Light shadow center", params.light_shadow_center, -100.0f, 100.0f);
       ImGui::SliderFloat3("Light direction", params.light_dir, -1.0f, 1.0f);
@@ -151,7 +157,7 @@ std::vector<glm::mat4> computeShadow(const Shadow& shadow, Model& windfall_lowre
 
   glm::vec3 lightDir = glm::vec3(params.light_dir[0], params.light_dir[1], params.light_dir[2]);
   if (params.fitLightFrustrum)
-    lightSpaceMatrix= computeLightViewProjMatrix(eye, lightDir, view, projection, shadow.shadow_height);
+    lightSpaceMatrix= computeLightViewProjMatrix(eye, lightDir, view, projection, shadow.shadow_height, params.coeff_increase_shadow_frustum);
   else
     lightSpaceMatrix = lightProjection * lightView;
 
@@ -163,6 +169,7 @@ std::vector<glm::mat4> computeShadow(const Shadow& shadow, Model& windfall_lowre
 
   shadow.shadow_shader_depth->set_uniform_mat4("model", model_mat_windfall);
   shadow.shadow_shader_depth->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
+  shadow.shadow_shader_depth->set_uniform_float("alpha_clip", params.alpha_clip);
 
   if (params.peter_paning) {
     glEnable(GL_CULL_FACE);
@@ -204,8 +211,9 @@ std::vector<glm::mat4> computeShadowCascaded(CascadedShadow& shadow, Model& wind
 
     glm::mat4 projection = glm::perspective(glm::radians(camera->fov_camera), (float)SRC_WIDTH / (float)SRC_HEIGHT,
                                   shadow.cascades_delimitations[i], shadow.cascades_delimitations[i + 1]);
-    shadow.lightSpaceMatrices[i] = computeLightViewProjMatrix(eye, lightDir, view, projection, shadow.shadow_height, i);
+    shadow.lightSpaceMatrices[i] = computeLightViewProjMatrix(eye, lightDir, view, projection, shadow.shadow_height, params.coeff_increase_shadow_frustum, i);
     shadow.shadow_shader_depth->set_uniform_mat4("lightSpaceMatrix", shadow.lightSpaceMatrices[i]);
+    shadow.shadow_shader_depth->set_uniform_float("alpha_clip", params.alpha_clip);
 
     windfall_lowres.draw(shadow.shadow_shader_depth);
   }
@@ -686,8 +694,10 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
 
     program_windfall->set_uniform_bool("color_cascade_layer", params.cascade_show_layers);
     program_windfall->set_uniform_vector_int("shadowMap_cascade", shadowMap_sampler_index.size(), shadowMap_sampler_index.data());
+    program_windfall->set_uniform_bool("blend_between_cascade", params.blend_between_cascade);
 
     if (params.use_cascaded_shadow) {
+      program_windfall->set_uniform_vector_float("shadow_biases", params.shadow_biases.size(), params.shadow_biases.data());
       program_windfall->set_uniform_vector_float("cascade_z_limits", cascaded_shadow.cascades_delimitations);
       for (unsigned int i = 0; i < NB_CASCADES; ++i) {
         glActiveTexture(GL_TEXTURE1 + i);
@@ -695,6 +705,7 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
       }
     }
     else {
+      program_windfall->set_uniform_vector_float("shadow_biases", 1, &params.shadow_bias);
       program_windfall->set_uniform_vector_float("cascade_z_limits", {params.znear, params.zfar});
       glActiveTexture(GL_TEXTURE1);
       glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
@@ -737,7 +748,7 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
         glBindTexture(GL_TEXTURE_2D, cascaded_shadow.depthMapTextures[params.cascadeLevel]);
       else
         glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
-      renderQuad();
+      renderQuad_corner();
     }
 
     set_im_gui_options(use_im_gui);
