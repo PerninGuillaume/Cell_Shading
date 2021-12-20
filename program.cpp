@@ -54,22 +54,31 @@ std::string read_file(std::string filename, const std::map<std::string, std::str
   return str;
 }
 
-program *program::make_program(const std::string &vertex_shader_filename, const std::string &fragment_shader_filename,
+program *program::make_program_multiple_files(const std::string &vertex_shader_filename, const std::vector<std::string>& fragment_shader_filenames,
                                const std::string &geometry_shader_filename, const std::map<std::string, std::string>& values_to_replace) {
   const std::string vertex_shader_src = read_file(vertex_shader_filename, values_to_replace);
-  const std::string fragment_shader_src = read_file(fragment_shader_filename, values_to_replace);
   if (vertex_shader_src.empty())
     std::cout << vertex_shader_filename << " is read to be empty !\n";
-  if (fragment_shader_src.empty())
-    std::cout << fragment_shader_filename << " is read to be empty !\n";
+
+  std::vector<std::string> fragment_shader_srcs;
+  for (const auto &fragment_shader_filename : fragment_shader_filenames) {
+    const std::string fragment_shader_src = read_file(fragment_shader_filename, values_to_replace);
+    if (fragment_shader_src.empty())
+      std::cout << fragment_shader_filename << " is read to be empty !\n";
+    fragment_shader_srcs.emplace_back(fragment_shader_src);
+  }
+
   program* program_res = new program();
   GLuint my_program = glCreateProgram();
 
-  GLuint my_fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-  program_res->shaders_.emplace_back(my_fragment_shader);
-  const GLchar *fragment_src = (const GLchar *)fragment_shader_src.c_str();
-  glShaderSource(my_fragment_shader, 1, &fragment_src, 0);
-  glCompileShader(my_fragment_shader);
+  for (const auto &fragment_shader_src : fragment_shader_srcs) {
+    GLuint my_fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    program_res->shaders_.emplace_back(my_fragment_shader);
+    const GLchar *fragment_src = (const GLchar *) fragment_shader_src.c_str();
+    glShaderSource(my_fragment_shader, 1, &fragment_src, 0);
+    glCompileShader(my_fragment_shader);
+    glAttachShader(my_program, my_fragment_shader);
+  }
 
   GLuint my_vertex_shader = glCreateShader(GL_VERTEX_SHADER);
   program_res->shaders_.emplace_back(my_vertex_shader);
@@ -87,13 +96,17 @@ program *program::make_program(const std::string &vertex_shader_filename, const 
     glCompileShader(my_geometry_shader);
     glAttachShader(my_program, my_geometry_shader);
   }
-  glAttachShader(my_program, my_fragment_shader);
   glAttachShader(my_program, my_vertex_shader);
   glLinkProgram(my_program);
 
   program_res->my_program_ = my_program;
   return program_res;
 
+}
+
+program *program::make_program(const std::string &vertex_shader_filename, const std::string& fragment_shader_filenames,
+                             const std::string &geometry_shader_filename , const std::map<std::string, std::string>& values_to_replace) {
+  return make_program_multiple_files(vertex_shader_filename, {fragment_shader_filenames}, geometry_shader_filename, values_to_replace);
 }
 
 std::string program::get_log() {

@@ -7,6 +7,10 @@ void set_zAtoon(program* program);
 program *init_program(const std::string& vertex_shader_filename,
                       const std::string& fragment_shader_filename, const std::string& geometry_shader_filename = ""
                       , const std::map<std::string, std::string>& values_to_replace = {});
+
+program *init_program(const std::string& vertex_shader_filename,
+                      const std::vector<std::string>& fragment_shader_filenames, const std::string& geometry_shader_filename = ""
+    , const std::map<std::string, std::string>& values_to_replace = {});
 void renderQuad();
 void renderQuad_corner();
 unsigned int load_image(const std::string& file);

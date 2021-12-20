@@ -66,7 +66,7 @@ struct {
   float wave_height = -10.05f;
   float sea_height = -10.267f;
   float billboard_size[2] = {5.0f, 1.0f};
-  program* program_windfall_with_lighting;
+  program* program_windfall_with_lighting = nullptr;
 } params;
 
 void set_im_gui_options(bool use_im_gui) {
@@ -96,13 +96,14 @@ void set_im_gui_options(bool use_im_gui) {
     if (ImGui::TreeNode("Shadow")) {
       ImGui::Checkbox("Shadow", &params.use_shadow);
       if (ImGui::Checkbox("Use cascaded shadow", &params.use_cascaded_shadow)) {
+        std::vector<std::string> fragment_filenames {"shaders/fragment_link.glsl", "shaders/fragment_shadow.glsl"};
         if (params.use_cascaded_shadow)
           params.program_windfall_with_lighting = init_program("shaders/vertex_link.glsl",
-                                                               "shaders/fragment_link.glsl", "",
+                                                               fragment_filenames, "",
                                                                {{"NB_CASCADES_TO_REPLACE", std::to_string(NB_CASCADES)}});
         else
           params.program_windfall_with_lighting = init_program("shaders/vertex_link.glsl",
-                                                               "shaders/fragment_link.glsl", "",
+                                                               fragment_filenames, "",
                                                                {{"NB_CASCADES_TO_REPLACE", "1"}});
       }
       ImGui::Checkbox("blend_between_cascade", &params.blend_between_cascade);
@@ -141,6 +142,43 @@ void set_im_gui_options(bool use_im_gui) {
       ImGui::Render();
       ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
   }
+}
+
+void set_shadow_uniforms(program* program, const CascadedShadow& cascaded_shadow,
+                         const Shadow& shadow, const std::vector<glm::mat4>& lightSpaceMatrices, int texture_offset_index) {
+  std::vector<int> shadowMap_sampler_index;
+  if (params.use_cascaded_shadow) {
+    for (unsigned int i = 0; i < NB_CASCADES; ++i)
+      shadowMap_sampler_index.emplace_back(i + texture_offset_index);
+  } else {
+    shadowMap_sampler_index.emplace_back(texture_offset_index);
+  }
+
+  program->set_uniform_bool("use_shadow", params.use_shadow);
+  program->set_uniform_float("shadow_bias", params.shadow_bias);
+  program->set_uniform_int("square_sample_size", params.square_sample_size);
+  program->set_uniform_bool("pcf", params.pcf);
+  program->set_uniform_bool("color_cascade_layer", params.cascade_show_layers);
+  program->set_uniform_vector_int("shadowMap_cascade", shadowMap_sampler_index.size(), shadowMap_sampler_index.data());
+  program->set_uniform_bool("blend_between_cascade", params.blend_between_cascade);
+
+  if (params.use_cascaded_shadow) {
+
+    program->set_uniform_vector_float("shadow_biases", params.shadow_biases.size(), params.shadow_biases.data());
+    program->set_uniform_vector_float("cascade_z_limits", cascaded_shadow.cascades_delimitations);
+    for (unsigned int i = 0; i < NB_CASCADES; ++i) {
+      glActiveTexture(GL_TEXTURE0 + i + texture_offset_index);
+      glBindTexture(GL_TEXTURE_2D, cascaded_shadow.depthMapTextures[i]);
+    }
+  }
+  else {
+    program->set_uniform_vector_float("shadow_biases", 1, &params.shadow_bias);
+    program->set_uniform_vector_float("cascade_z_limits", {params.znear, params.zfar});
+    glActiveTexture(GL_TEXTURE0 + texture_offset_index);
+    glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
+  }
+  program->set_uniform_vector_mat4("lightSpaceMatrices_cascade", lightSpaceMatrices);
+
 }
 
 std::vector<glm::mat4> computeShadow(const Shadow& shadow, Model& windfall_lowres, int SRC_WIDTH, int SRC_HEIGHT
@@ -231,21 +269,16 @@ std::vector<glm::mat4> computeShadowCascaded(CascadedShadow& shadow, Model& wind
 }
 
 void display_water(program* program_water, GLuint waterVAO, const glm::mat4& view, const glm::mat4& projection
-                   , const glm::mat4& lightSpaceMatrix, const Shadow& shadow) {
+                   , const Shadow& shadow, const CascadedShadow& cascaded_shadow,
+                   const std::vector<glm::mat4>& lightSpaceMatrices, const glm::vec3& lightDir) {
     program_water->use();
     glm::mat4 model_mat_water = glm::mat4(1.0f);
     program_water->set_uniform_mat4("view", view);
     program_water->set_uniform_mat4("projection", projection);
     program_water->set_uniform_mat4("model", model_mat_water);
+    program_water->set_uniform_vec3("dirLight", lightDir);
 
-    program_water->set_uniform_bool("use_shadow", params.use_shadow);
-    program_water->set_uniform_bool("pcf", params.pcf);
-    program_water->set_uniform_float("shadow_bias", params.shadow_bias);
-    program_water->set_uniform_int("shadowMap", 0);
-    program_water->set_uniform_mat4("lightSpaceMatrices_cascade", lightSpaceMatrix);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
+    set_shadow_uniforms(program_water, cascaded_shadow, shadow, lightSpaceMatrices, 0);
 
     glBindVertexArray(waterVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -283,8 +316,8 @@ void display_skybox(program *program_skybox, GLuint skyboxVAO, GLuint cubemapTex
 }
 
 void display_shore(program* program_shore, const Helper& helper, GLuint shoreVAO, const glm::mat4& projection
-        , const std::vector<unsigned int>& shoreTextures, const glm::mat4 lightSpaceMatrix, const Shadow& shadow
-        , int nb_of_shore_waves) {
+        , const std::vector<unsigned int>& shoreTextures, const Shadow& shadow, const CascadedShadow& cascaded_shadow
+        , int nb_of_shore_waves, const std::vector<glm::mat4>& lightSpaceMatrices, const glm::vec3& lightDir) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     program_shore->use();
@@ -314,14 +347,8 @@ void display_shore(program* program_shore, const Helper& helper, GLuint shoreVAO
         glBindTexture(GL_TEXTURE_2D, shoreTextures[i]);
     }
 
-    program_shore->set_uniform_bool("use_shadow", params.use_shadow);
-    program_shore->set_uniform_bool("pcf", params.pcf);
-    program_shore->set_uniform_float("shadow_bias", params.shadow_bias);
-    program_shore->set_uniform_int("shadowMap", 4);
-    program_shore->set_uniform_mat4("lightSpaceMatrices_cascade", lightSpaceMatrix);
-
-    glActiveTexture(GL_TEXTURE4);
-    glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
+  program_shore->set_uniform_vec3("dirLight", lightDir);
+  set_shadow_uniforms(program_shore, cascaded_shadow, shadow, lightSpaceMatrices, 4);
 
     glDrawArrays(GL_TRIANGLES, 0, 6 * nb_of_shore_waves);
 
@@ -538,25 +565,29 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
   ImGui_ImplOpenGL3_Init("#version 450");
   ImGui::StyleColorsDark();
 
-  //--------------------------------Shader setup--------------------------------------
+  //--------------------------------Shaders setup--------------------------------------
   program *quad_depth_shader = init_program("shaders/vertex_normalized_coord.glsl", "shaders/fragment_quad_depth.glsl");
   program *shader_normals = init_program("shaders/vertex_normals.glsl", "shaders/fragment_normals.glsl",
                                          "shaders/geometry_normals.glsl");
   program *program_windfall;
   program *program_windfall_without_lighting = init_program("shaders/vertex_model.glsl",
                                   "shaders/fragment_model.glsl");
+  std::vector<std::string> fragment_filenames {"shaders/fragment_link.glsl", "shaders/fragment_shadow.glsl"};
+  std::map<std::string, std::string> cascade_map_replace = {{"NB_CASCADES_TO_REPLACE", std::to_string(NB_CASCADES)}};
   program *program_windfall_with_lighting = init_program("shaders/vertex_link.glsl",
-                                           "shaders/fragment_link.glsl", "",
-                                           {{"NB_CASCADES_TO_REPLACE", std::to_string(NB_CASCADES)}});
+                                                         fragment_filenames, "", cascade_map_replace);
+
   program_windfall = program_windfall_with_lighting;
   program *program_skybox = init_program("shaders/vertex_skybox.glsl",
                                          "shaders/fragment_skybox.glsl");
+  fragment_filenames = {"shaders/fragment_water.glsl", "shaders/fragment_shadow.glsl"};
   program *program_water = init_program("shaders/vertex_water.glsl",
-                                        "shaders/fragment_water.glsl");
+                                        fragment_filenames, "", cascade_map_replace);
   program *program_clouds = init_program("shaders/vertex_clouds.glsl",
                                          "shaders/fragment_clouds.glsl");
+  fragment_filenames = {"shaders/fragment_shore.glsl", "shaders/fragment_shadow.glsl"};
   program *program_shore = init_program("shaders/vertex_shore.glsl",
-                                        "shaders/fragment_shore.glsl");
+                                        fragment_filenames, "", cascade_map_replace);
   program *program_sun = init_program("shaders/vertex_sun.glsl",
                                          "shaders/fragment_sun.glsl");
   program *program_waves = init_program("shaders/vertex_wave.glsl",
@@ -575,10 +606,6 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
   unsigned int size_shadow_texture = 4096;
   Shadow shadow = Shadow(size_shadow_texture, size_shadow_texture);
   CascadedShadow cascaded_shadow = CascadedShadow(NB_CASCADES, size_shadow_texture, size_shadow_texture);
-  std::vector<int> shadowMap_sampler_index;
-  for (unsigned int i = 0; i < NB_CASCADES; ++i) {
-    shadowMap_sampler_index.emplace_back(i + 1);
-  }
 
   glEnable(GL_DEPTH_TEST);
 
@@ -683,35 +710,13 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
     program_windfall->set_uniform_float("alpha_clip", params.alpha_clip);
     program_windfall->set_uniform_bool("use_zAtoon", params.use_zAtoon);
     program_windfall->set_uniform_bool("no_texture", params.no_texture);
-    program_windfall->set_uniform_bool("use_shadow", params.use_shadow);
-    program_windfall->set_uniform_bool("pcf", params.pcf);
-    program_windfall->set_uniform_int("square_sample_size", params.square_sample_size);
-    program_windfall->set_uniform_float("shadow_bias", params.shadow_bias);
 
     program_windfall->set_uniform_vec3("dirLight.direction", lightDir);
 
     program_windfall->set_uniform_vec3("dirLight.ambient", params.light_ambient * eye_cancer);
     program_windfall->set_uniform_vec3("dirLight.diffuse", params.light_diffuse * eye_cancer);
 
-    program_windfall->set_uniform_bool("color_cascade_layer", params.cascade_show_layers);
-    program_windfall->set_uniform_vector_int("shadowMap_cascade", shadowMap_sampler_index.size(), shadowMap_sampler_index.data());
-    program_windfall->set_uniform_bool("blend_between_cascade", params.blend_between_cascade);
-
-    if (params.use_cascaded_shadow) {
-      program_windfall->set_uniform_vector_float("shadow_biases", params.shadow_biases.size(), params.shadow_biases.data());
-      program_windfall->set_uniform_vector_float("cascade_z_limits", cascaded_shadow.cascades_delimitations);
-      for (unsigned int i = 0; i < NB_CASCADES; ++i) {
-        glActiveTexture(GL_TEXTURE1 + i);
-        glBindTexture(GL_TEXTURE_2D, cascaded_shadow.depthMapTextures[i]);
-      }
-    }
-    else {
-      program_windfall->set_uniform_vector_float("shadow_biases", 1, &params.shadow_bias);
-      program_windfall->set_uniform_vector_float("cascade_z_limits", {params.znear, params.zfar});
-      glActiveTexture(GL_TEXTURE1);
-      glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
-    }
-    program_windfall->set_uniform_vector_mat4("lightSpaceMatrices_cascade", lightSpaceMatrices);
+    set_shadow_uniforms(program_windfall, cascaded_shadow, shadow, lightSpaceMatrices, 1);
 
     if (params.hd && load_hd_texture)
       windfall_highres.draw(program_windfall);
@@ -721,13 +726,15 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    //display_water(program_water, waterVAO, view, projection, lightSpaceMatrix, shadow);
+    display_water(program_water, waterVAO, view, projection, shadow, cascaded_shadow, lightSpaceMatrices
+                  , lightDir);
 
     display_normals(shader_normals, projection, view, model_mat_windfall, load_hd_texture, windfall_highres, windfall_lowres);
 
     display_skybox(program_skybox, skyboxVAO, cubemapTexture, projection);
 
-    //display_shore(program_shore, helper, shoreVAO, projection, shoreTextures, lightSpaceMatrix, shadow, nb_of_shore_waves);
+    display_shore(program_shore, helper, shoreVAO, projection, shoreTextures, shadow, cascaded_shadow, nb_of_shore_waves
+                  , lightSpaceMatrices, lightDir);
 
     display_sun(program_sun, sunVAO, sun_textures, projection, alignment, alignment_limit);
 

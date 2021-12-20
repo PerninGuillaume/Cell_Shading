@@ -34,6 +34,19 @@ for (unsigned int i = 0; i < 256; ++i) {
 }
 
 program *init_program(const std::string& vertex_shader_filename,
+                      const std::vector<std::string>& fragment_shader_filenames, const std::string& geometry_shader_filename
+    , const std::map<std::string, std::string>& values_to_replace) {
+  program *program = program::make_program_multiple_files(vertex_shader_filename,
+                                           fragment_shader_filenames, geometry_shader_filename, values_to_replace);
+  std::cout << program->get_log();
+  if (!program->is_ready()) {
+    throw "Program is not ready";
+  }
+  program->use();
+  return program;
+}
+
+program *init_program(const std::string& vertex_shader_filename,
                       const std::string& fragment_shader_filename, const std::string& geometry_shader_filename
                       , const std::map<std::string, std::string>& values_to_replace) {
   program *program = program::make_program(vertex_shader_filename,

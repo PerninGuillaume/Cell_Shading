@@ -1,10 +1,13 @@
 #version 450
 
+const int NB_CASCADES = NB_CASCADES_TO_REPLACE;
+
 out vec4 FragColor;
 
 in vec2 TexCoords;
 in float distToCamera;
-in vec4 FragPosLightSpace;
+in vec3 FragPosWorldSpace;
+in vec4 FragPosLightSpace_cascade[NB_CASCADES];
 
 uniform sampler2D tex_alpha_wave;
 uniform sampler2D tex_black_wave;
@@ -12,14 +15,25 @@ uniform sampler2D tex_limit_wave;
 uniform sampler2D tex_mask_wave;
 uniform float alpha_clip;
 uniform float offset;
+uniform vec3 dirLight;
 
-//Shadow uniform
+// Shadow Variables
+uniform mat4 view;
 uniform bool use_shadow;
+uniform float cascade_z_limits[NB_CASCADES + 1]; // example value for nb_cascades = 2 : [0.1f, 100.f, 1000.f]
+uniform float shadow_biases[NB_CASCADES];
+uniform bool use_color;
+uniform bool no_texture;
 uniform bool pcf;
-uniform float shadow_bias;
-uniform sampler2D shadowMap;
+uniform int square_sample_size;
+uniform bool color_cascade_layer;
+uniform bool blend_between_cascade;
 
-float ShadowCalculation(vec4 fragPosLightSpace);
+uniform sampler2D shadowMap_cascade[NB_CASCADES];
+
+float ShadowCalculation(mat4 view, vec3 FragPosWorldSpace, int nb_cascades, float cascade_z_limits[NB_CASCADES + 1]
+, bool blend_between_cascade, vec3 normal, vec4 FragPosLightSpace_cascade[NB_CASCADES], vec3 lightDir, float shadow_biases[NB_CASCADES]
+, bool pcf, int square_sample_size, bool color_cascade_layer, sampler2D shadowMap_cascade[NB_CASCADES], out vec3 debug_color_out);
 
 void main()
 {
@@ -32,7 +46,12 @@ void main()
     float shadow_coeff = 0.0f;
 
     if (use_shadow) {
-        shadow_coeff = ShadowCalculation(FragPosLightSpace);
+        vec3 normal = vec3(0.f, 1.f, 0.f);
+        vec3 lightDir = normalize(-dirLight);
+        vec3 debug_color_shadow;
+        shadow_coeff = ShadowCalculation(view, FragPosWorldSpace, NB_CASCADES, cascade_z_limits, blend_between_cascade
+        , normal, FragPosLightSpace_cascade, lightDir, shadow_biases, pcf, square_sample_size, color_cascade_layer
+        , shadowMap_cascade, debug_color_shadow);
     }
     float coeff = 1.0f - shadow_coeff;
 
@@ -78,38 +97,4 @@ void main()
     if (TexCoords.y + abs(offset) < 0.4 && TexCoords.y < 0.45)
         FragColor.a = FragColor.a * (1- (abs(offset)));
 
-}
-
-float ShadowCalculation(vec4 fragPosLightSpace)
-{
-    // perform perspective divide
-    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    // transform to [0,1] range
-    projCoords = projCoords * 0.5 + 0.5;
-    if (projCoords.z > 1.0)
-    return 0.0;
-    // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
-    float closestDepth = texture(shadowMap, projCoords.xy).r;
-    // get depth of current fragment from light's perspective
-    float currentDepth = projCoords.z;
-    // check whether current frag pos is in shadow
-    // PCF
-    float shadow;
-    if (pcf) {
-        shadow = 0.0;
-        vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
-        for (int x = -1; x <= 1; ++x)
-        {
-            for (int y = -1; y <= 1; ++y)
-            {
-                float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-                shadow += currentDepth - shadow_bias > pcfDepth  ? 1.0 : 0.0;
-            }
-        }
-        shadow /= 9.0f;
-    } else {
-        shadow = currentDepth - shadow_bias > closestDepth  ? 1.0 : 0.0;
-    }
-
-    return shadow;
 }
