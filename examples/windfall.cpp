@@ -31,8 +31,11 @@ void set_im_gui_options(bool use_im_gui) {
     ImGui::Begin("Windfall options");
     ImGui::Checkbox("Hd textures", &params.hd);
     if (ImGui::TreeNode("Sun")) {
+      ImGui::Checkbox("Moving Sun", &params.cycle_day);
       ImGui::ColorPicker3("Center", (float*)&params.color_center);
       ImGui::ColorPicker3("Gradient", (float*)&params.color_gradient);
+      ImGui::ColorPicker3("Additional Color Skybox", (float*)&params.color_skybox_change);
+      ImGui::SliderFloat("Blend Percentage Skybox", &params.blend_skybox_color, 0.0f, 1.0f);
       ImGui::SliderFloat("Sun magnification", &params.sun_magnification, 0.0f, 1000.0f);
       ImGui::SliderFloat("Lowest Eye cancer", &params.lowest_eye_cancer, 0.0f, 1.0f);
 
@@ -183,15 +186,14 @@ void display_windfall(program* program_windfall, const glm::mat4& model_mat_wind
 
 float compute_new_light_pos() {
   float radius = 1.f;
-  float period_day = 60.0f;
+  float period_day = 380.0f;
   float t = fmod(glfwGetTime(), period_day);
-  float angle_radian = 2 * M_PI * t / period_day;
-  angle_radian = params.angle_sun * M_PI / 180;
-  /*if (params.angle_sun > 180.f)
-    params.always_in_shadow = true;
+
+  float angle_radian;
+  if (params.cycle_day)
+    angle_radian = 2 * M_PI * t / period_day;
   else
-    params.always_in_shadow = false;
-    */
+    angle_radian = params.angle_sun * M_PI / 180;
   float x = glm::cos(angle_radian) * radius;
   float y = glm::sin(angle_radian) * radius;
 
@@ -202,13 +204,29 @@ float compute_new_light_pos() {
   glm::vec4 color_angle = alpha * color_center_zenith + (1.f - alpha) * color_center_rising_sun;
   params.color_center = ImVec4(color_angle.r, color_angle.g, color_angle.b, color_angle.a);
 
+  glm::vec3 color_skybox_rising_sun = glm::vec3(226 / 255.0f, 52 / 255.0f, 52 / 255.0f);
+  glm::vec3 color_skybox_night = glm::vec3(0.f);
+  float blend_percentage_rising_sun = 0.46f;
+  float blend_percentage_night = 0.75f;
 
+  glm::vec3 col_sky_additional;
+
+  // On rising of the sun we want more of color_skybox_rising_sun, at midnight more of color_sybox_night
+  // and at the zenith neither
+  float percentage_rising = 1.f - std::abs(sin(angle_radian));
+  float percentage_night = std::max(-1.f * sin(angle_radian), 0.);
+  col_sky_additional = color_skybox_rising_sun * percentage_rising + color_skybox_night * percentage_night;
+  params.blend_skybox_color = blend_percentage_rising_sun * percentage_rising + blend_percentage_night * percentage_night;
+  params.color_skybox_change = ImVec4(col_sky_additional.r, col_sky_additional.g, col_sky_additional.b, 1.0f);
+
+  // Store new position of light and return angle for computing the new vertex of the sun
   params.light_pos[0] = x;
   params.light_pos[1] = y;
   params.light_pos[2] = 0.f;
   params.light_shadow_center[0] = 0.f;
   params.light_shadow_center[1] = 0.f;
   params.light_shadow_center[2] = 0.f;
+
   return angle_radian;
 }
 
@@ -250,19 +268,21 @@ void display_normals(program* shader_normals, const glm::mat4& projection, const
     }
 }
 
-void display_skybox(program *program_skybox, GLuint skyboxVAO, GLuint cubemapTexture, glm::mat4 projection) {
-    program_skybox->use();
+void display_skybox(program *program_skybox, GLuint skyboxVAO, GLuint cubemapTexture, const glm::mat4& projection) {
+  program_skybox->use();
 
-    glDepthFunc(GL_LEQUAL);
-    glm::mat4 view = glm::mat4(glm::mat3(camera->view_matrix())); // Remove the translation from the view matrix
-    program_skybox->set_uniform_mat4("view", view);
-    program_skybox->set_uniform_mat4("projection", projection);
-    glBindVertexArray(skyboxVAO);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-    glBindVertexArray(0);
-    glDepthFunc(GL_LESS);
+  glDepthFunc(GL_LEQUAL);
+  glm::mat4 view = glm::mat4(glm::mat3(camera->view_matrix())); // Remove the translation from the view matrix
+  program_skybox->set_uniform_mat4("view", view);
+  program_skybox->set_uniform_mat4("projection", projection);
+  program_skybox->set_uniform_vec3("additional_color", params.color_skybox_change.x, params.color_skybox_change.y, params.color_skybox_change.z);
+  program_skybox->set_uniform_float("blend_percentage", params.blend_skybox_color);
+  glBindVertexArray(skyboxVAO);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+  glDrawArrays(GL_TRIANGLES, 0, 36);
+  glBindVertexArray(0);
+  glDepthFunc(GL_LESS);
 }
 
 void display_shore(program* program_shore, const Helper& helper, GLuint shoreVAO, const glm::mat4& projection

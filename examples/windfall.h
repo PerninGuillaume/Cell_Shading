@@ -40,10 +40,12 @@ struct Param {
   float znear = 0.1f;
   float zfar = 600.f;
   float ortho_bounds[4] = {-50.0f, 50.0f, -60.0f, 70.0f};
-  bool ortho_view = false;
   ImVec4 color_border = ImVec4(243.0f / 255.0f, 106.0f / 255.0f, 65.0f / 255.0f, 1.0f);
   ImVec4 color_center = ImVec4(246 / 255.0f, 197 / 255.0f, 193 / 255.0f, 1.0f);
   ImVec4 color_gradient = ImVec4(146 / 255.0f, 145 / 255.0f, 7 / 255.0f, 1.0f);
+  ImVec4 color_skybox_change = ImVec4(0 / 255.0f, 0 / 255.0f, 0 / 255.0f, 1.0f);
+  bool cycle_day = true;
+  float blend_skybox_color = 0.2f;
   float sun_magnification = 330.0f;
   float lowest_eye_cancer = 0.1f;
   bool hd = false;
