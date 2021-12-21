@@ -11,10 +11,10 @@ class Shadow {
   void generate_depth_map_texture();
   void generate_depth_map_frame_buffer();
   std::vector<glm::mat4> computeShadow(const windfall::Param& params, Model& windfall_lowres, int SRC_WIDTH, int SRC_HEIGHT
-      , const glm::mat4& view, const glm::mat4& projection, const glm::vec3& lightDir, const glm::mat4& model_mat_windfall);
+      , const glm::mat4& view, const glm::mat4& projection, const glm::vec3& lightDir, const glm::mat4& model_mat_windfall, GLuint waterVAO);
 
 
-    program* shadow_shader_depth;
+  program* shadow_shader_depth;
   unsigned int depthMapTexture;
   unsigned int depthMapFBO;
   unsigned int shadow_width;

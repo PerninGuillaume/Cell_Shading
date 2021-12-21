@@ -123,6 +123,7 @@ float ShadowCalculation(mat4 view, vec3 FragPosWorldSpace, int nb_cascades, floa
         else if (layer == 2)
             debug_color.b += 0.2f;
     }
+    debug_color_out = debug_color;
 
     if (layer == NB_CASCADES) {
         return 0.0;// Depth behind all Shadow layer

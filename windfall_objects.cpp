@@ -1,4 +1,5 @@
 #include <vector>
+#include <iostream>
 #include "windfall_objects.h"
 #include "misc.h"
 
@@ -62,27 +63,37 @@ std::vector<unsigned int> loadSunTextures()
 }
 
 
-unsigned int sun_create_VAO() {
-  float x_start = -50.0f;
-  float y_start = -50.0f;
-  float x_end = 50.0f;
-  float y_end = 50.0f;
-  float height = 500.0f;
-  float sunVertices[] = {
-      x_end,  height, y_end,  0.0f, 0.0f,
-      x_start, height, y_end,     1.0f, 0.0f,
-      x_start, height,  y_start,      1.0f, 1.0f,
+unsigned int sun_create_VAO(float angle) {
 
-      x_start,  height, y_start,  1.0f, 1.0f,
-      x_end, height,  y_start,      0.0f, 1.0f,
-      x_end, height, y_end,     0.0f, 0.0f,
+  angle -= M_PI / 2; // The angle 0 correspond for us to the zenith so to begin with an
+  // angle at 0 in a rising sun, we substract pi/2
+
+  float x_start = -50.0f;
+  float z_start = -50.0f;
+  float x_end = 50.0f;
+  float z_end = 50.0f;
+  float height = 500.0f;
+  std::vector<float> sunVertices = {
+      x_end,  height, z_end,  0.0f, 0.0f,
+      x_start, height, z_end,     1.0f, 0.0f,
+      x_start, height,  z_start,      1.0f, 1.0f,
+
+      x_start,  height, z_start,  1.0f, 1.0f,
+      x_end, height,  z_start,      0.0f, 1.0f,
+      x_end, height, z_end,     0.0f, 0.0f,
   };
+  for (int i = 0; i < sunVertices.size(); i+=5) {
+    float new_x = sunVertices[i] * cos(angle) - sunVertices[i + 1] * sin(angle);
+    float new_y = sunVertices[i] * sin(angle) + sunVertices[i + 1] * cos(angle);
+    sunVertices[i] = new_x;
+    sunVertices[i + 1] = new_y;
+  }
   unsigned int sunVAO, sunVBO;
   glGenVertexArrays(1, &sunVAO);
   glGenBuffers(1, &sunVBO);
   glBindVertexArray(sunVAO);
   glBindBuffer(GL_ARRAY_BUFFER, sunVBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(sunVertices), &sunVertices, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sunVertices.size() * sizeof(float), sunVertices.data(), GL_STATIC_DRAW);
 
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
   glEnableVertexAttribArray(0);

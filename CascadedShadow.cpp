@@ -48,9 +48,7 @@ void CascadedShadow::generate_depth_map_frame_buffer() {
 
 std::vector<glm::mat4> CascadedShadow::computeShadowCascaded(const windfall::Param& params, std::shared_ptr<Camera> camera
      , Model& windfall_lowres, int SRC_WIDTH, int SRC_HEIGHT
-    , const glm::mat4& view, const glm::vec3& lightDir, const glm::mat4& model_mat_windfall) {
-
-  glm::vec3 eye = glm::vec3(params.light_pos[0], params.light_pos[1], params.light_pos[2]);
+    , const glm::mat4& view, const glm::vec3& lightDir, const glm::mat4& model_mat_windfall, GLuint waterVAO) {
 
   glViewport(0, 0, this->shadow_width, this->shadow_height);
 
@@ -68,11 +66,17 @@ std::vector<glm::mat4> CascadedShadow::computeShadowCascaded(const windfall::Par
 
     glm::mat4 projection = glm::perspective(glm::radians(camera->fov_camera), (float)SRC_WIDTH / (float)SRC_HEIGHT,
                                             this->cascades_delimitations[i], this->cascades_delimitations[i + 1]);
-    this->lightSpaceMatrices[i] = computeLightViewProjMatrix(eye, lightDir, view, projection, params.coeff_increase_shadow_frustum_z, params.coeff_increase_shadow_frustum_xy);
+    this->lightSpaceMatrices[i] = computeLightViewProjMatrix(lightDir, view, projection, params.coeff_increase_shadow_frustum_z, params.coeff_increase_shadow_frustum_xy);
     this->shadow_shader_depth->set_uniform_mat4("lightSpaceMatrix", this->lightSpaceMatrices[i]);
     this->shadow_shader_depth->set_uniform_float("alpha_clip", params.alpha_clip);
 
     windfall_lowres.draw(this->shadow_shader_depth);
+    glBindVertexArray(waterVAO);
+    //glDisable(GL_DEPTH_TEST);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    //glEnable(GL_DEPTH_TEST);
+    glBindVertexArray(0);
+
   }
 
 
@@ -122,7 +126,7 @@ std::vector<glm::vec4> get_frustrum_world_space_coordinates(const glm::mat4& vie
   return coords_world;
 }
 
-glm::mat4 computeLightViewProjMatrix(const glm::vec3& lightPos, const glm::vec3& lightDir, const glm::mat4& view
+glm::mat4 computeLightViewProjMatrix(const glm::vec3& lightDir, const glm::mat4& view
                                      , const glm::mat4& projection, float increase_coeff_z, float increase_coeff_xy) {
   auto frustrum_coords = get_frustrum_world_space_coordinates(view, projection);
 

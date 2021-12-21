@@ -74,6 +74,7 @@ void set_im_gui_options(bool use_im_gui) {
       ImGui::SliderFloat3("Shadow biases", params.shadow_biases.data(), 0.001f, 0.4f);
       ImGui::SliderFloat("increase_shadow_frustum_z", &params.coeff_increase_shadow_frustum_z, 1.f, 5.f);
       ImGui::SliderFloat("increase_shadow_frustum_xy", &params.coeff_increase_shadow_frustum_xy, 1.f, 5.f);
+      ImGui::SliderFloat("Angle sun", &params.angle_sun, 0.f, 360.f);
       ImGui::SliderFloat3("Light position", params.light_pos, -100.0f, 100.0f);
       ImGui::SliderFloat3("Light shadow center", params.light_shadow_center, -100.0f, 100.0f);
 
@@ -180,21 +181,48 @@ void display_windfall(program* program_windfall, const glm::mat4& model_mat_wind
 
 }
 
+float compute_new_light_pos() {
+  float radius = 1.f;
+  float period_day = 60.0f;
+  float t = fmod(glfwGetTime(), period_day);
+  float angle_radian = 2 * M_PI * t / period_day;
+  angle_radian = params.angle_sun * M_PI / 180;
+  /*if (params.angle_sun > 180.f)
+    params.always_in_shadow = true;
+  else
+    params.always_in_shadow = false;
+    */
+  float x = glm::cos(angle_radian) * radius;
+  float y = glm::sin(angle_radian) * radius;
+
+  params.light_pos[0] = x;
+  params.light_pos[1] = y;
+  params.light_pos[2] = 0.f;
+  params.light_shadow_center[0] = 0.f;
+  params.light_shadow_center[1] = 0.f;
+  params.light_shadow_center[2] = 0.f;
+  return angle_radian;
+}
+
 void display_water(program* program_water, GLuint waterVAO, const glm::mat4& view, const glm::mat4& projection
-                   , const Shadow& shadow, const CascadedShadow& cascaded_shadow,
+    , const Shadow& shadow, const CascadedShadow& cascaded_shadow,
                    const std::vector<glm::mat4>& lightSpaceMatrices, const glm::vec3& lightDir) {
-    program_water->use();
-    glm::mat4 model_mat_water = glm::mat4(1.0f);
-    program_water->set_uniform_mat4("view", view);
-    program_water->set_uniform_mat4("projection", projection);
-    program_water->set_uniform_mat4("model", model_mat_water);
-    program_water->set_uniform_vec3("dirLight", lightDir);
+  program_water->use();
+  glm::mat4 model_mat_water = glm::mat4(1.0f);
+  program_water->set_uniform_mat4("view", view);
+  program_water->set_uniform_mat4("projection", projection);
+  program_water->set_uniform_mat4("model", model_mat_water);
 
-    set_shadow_uniforms(program_water, cascaded_shadow, shadow, lightSpaceMatrices, 0);
+  program_water->set_uniform_vec3("dirLight.direction", lightDir);
+  program_water->set_uniform_vec3("dirLight.ambient", params.light_ambient);
+  program_water->set_uniform_vec3("dirLight.diffuse", params.light_diffuse);
 
-    glBindVertexArray(waterVAO);
+
+  set_shadow_uniforms(program_water, cascaded_shadow, shadow, lightSpaceMatrices, 0);
+
+  glBindVertexArray(waterVAO);
   glDisable(GL_DEPTH_TEST);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+  glDrawArrays(GL_TRIANGLES, 0, 6);
   glEnable(GL_DEPTH_TEST);
   glBindVertexArray(0);
 }
@@ -261,7 +289,9 @@ void display_shore(program* program_shore, const Helper& helper, GLuint shoreVAO
         glBindTexture(GL_TEXTURE_2D, shoreTextures[i]);
     }
 
-  program_shore->set_uniform_vec3("dirLight", lightDir);
+  program_shore->set_uniform_vec3("dirLight.direction", lightDir);
+  program_shore->set_uniform_vec3("dirLight.ambient", params.light_ambient);
+  program_shore->set_uniform_vec3("dirLight.diffuse", params.light_diffuse);
   set_shadow_uniforms(program_shore, cascaded_shadow, shadow, lightSpaceMatrices, 4);
 
     glDrawArrays(GL_TRIANGLES, 0, 6 * nb_of_shore_waves);
@@ -339,7 +369,9 @@ void display_sun(program* program_sun, GLuint sunVAO, const std::vector<unsigned
         glBindTexture(GL_TEXTURE_2D, sun_textures[i]);
     }
 
+  glDisable(GL_DEPTH_TEST);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+  glEnable(GL_DEPTH_TEST);
     glBindVertexArray(0);
 
 }
@@ -538,7 +570,6 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
 
   // Sun
   std::vector<unsigned int> sun_textures = loadSunTextures();
-  unsigned int sunVAO = sun_create_VAO();
 
   // Clouds
   std::vector<unsigned int> cloudsTextures = loadClouds();
@@ -604,22 +635,25 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
     lightDir = glm::normalize(lightDir);
     std::vector<glm::mat4> lightSpaceMatrices;
     if (params.use_cascaded_shadow)
-      lightSpaceMatrices = cascaded_shadow.computeShadowCascaded(params, camera, windfall_lowres, SRC_WIDTH, SRC_HEIGHT, view, lightDir, model_mat_windfall);
+      lightSpaceMatrices = cascaded_shadow.computeShadowCascaded(params, camera, windfall_lowres, SRC_WIDTH, SRC_HEIGHT, view, lightDir, model_mat_windfall, waterVAO);
     else
-      lightSpaceMatrices = shadow.computeShadow(params, windfall_lowres, SRC_WIDTH, SRC_HEIGHT, view, projection, lightDir, model_mat_windfall);
+      lightSpaceMatrices = shadow.computeShadow(params, windfall_lowres, SRC_WIDTH, SRC_HEIGHT, view, projection, lightDir, model_mat_windfall, waterVAO);
 
     // Display Objects for which you don't care about depth
     display_skybox(program_skybox, skyboxVAO, cubemapTexture, projection);
-    display_water(program_water, waterVAO, view, projection, shadow, cascaded_shadow, lightSpaceMatrices
-        , lightDir);
-
-      // 2. render scene as normal using the generated depth/shadow map
-    // --------------------------------------------------------------
 
     float alignment = glm::dot(camera->front, glm::vec3(0.0f, 1.0f, 0.0f));
     // Variable measuring by how much we are looking at the sun, 1.0f being the highest possible value
     float alignment_limit = 0.9f; // By this value we can view the sun
     float eye_cancer = get_eye_cancer(alignment, alignment_limit, params.lowest_eye_cancer);
+    float angle_sun = compute_new_light_pos();
+    unsigned int sunVAO = sun_create_VAO(angle_sun);
+    display_sun(program_sun, sunVAO, sun_textures, projection, alignment, alignment_limit);
+    display_water(program_water, waterVAO, view, projection, shadow, cascaded_shadow, lightSpaceMatrices
+        , lightDir);
+
+      // 2. render scene as normal using the generated depth/shadow map
+    // --------------------------------------------------------------
 
     display_windfall(program_windfall, model_mat_windfall, view, projection, lightDir, eye_cancer, shadow, cascaded_shadow
         , lightSpaceMatrices, load_hd_texture, windfall_highres, windfall_lowres);
@@ -631,7 +665,6 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
     display_shore(program_shore, helper, shoreVAO, projection, shoreTextures, shadow, cascaded_shadow, nb_of_shore_waves
                   , lightSpaceMatrices, lightDir);
 
-    display_sun(program_sun, sunVAO, sun_textures, projection, alignment, alignment_limit);
 
     display_clouds(program_clouds, cloudsVAO, helper, cloudsTextures, projection);
 

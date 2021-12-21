@@ -32,12 +32,13 @@ struct Param {
   float light_diffuse = 0.8f;
   float light_pos[3] = {-21.0f, 49.0f, -29.0f}; //need a position for shadow
   float light_shadow_center[3] = {6.0f, 1.0f, -44.0f}; //The point the light will look at
+  float angle_sun = 120.f;
   ImVec4 some_color = ImVec4(0.45f, 0.55f, 0.6f, 1.00f);
   float alpha_clip = 0.3f;
   float offset = 0.0f;
   float offset_water = 0.0f;
   float znear = 0.1f;
-  float zfar = 500.f;
+  float zfar = 600.f;
   float ortho_bounds[4] = {-50.0f, 50.0f, -60.0f, 70.0f};
   bool ortho_view = false;
   ImVec4 color_border = ImVec4(243.0f / 255.0f, 106.0f / 255.0f, 65.0f / 255.0f, 1.0f);

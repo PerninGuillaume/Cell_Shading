@@ -42,7 +42,7 @@ void Shadow::generate_depth_map_frame_buffer() {
 }
 
 std::vector<glm::mat4> Shadow::computeShadow(const windfall::Param& params, Model& windfall_lowres, int SRC_WIDTH, int SRC_HEIGHT
-    , const glm::mat4& view, const glm::mat4& projection, const glm::vec3& lightDir, const glm::mat4& model_mat_windfall) {
+    , const glm::mat4& view, const glm::mat4& projection, const glm::vec3& lightDir, const glm::mat4& model_mat_windfall, GLuint waterVAO) {
 
   glm::mat4 lightProjection, lightView;
   glm::mat4 lightSpaceMatrix;
@@ -55,7 +55,7 @@ std::vector<glm::mat4> Shadow::computeShadow(const windfall::Param& params, Mode
                           up);
 
   if (params.fitLightFrustrum)
-    lightSpaceMatrix= computeLightViewProjMatrix(eye, lightDir, view, projection, params.coeff_increase_shadow_frustum_z, params.coeff_increase_shadow_frustum_xy);
+    lightSpaceMatrix= computeLightViewProjMatrix(lightDir, view, projection, params.coeff_increase_shadow_frustum_z, params.coeff_increase_shadow_frustum_xy);
   else
     lightSpaceMatrix = lightProjection * lightView;
 
@@ -74,6 +74,13 @@ std::vector<glm::mat4> Shadow::computeShadow(const windfall::Param& params, Mode
     glCullFace(GL_FRONT);
   }
   windfall_lowres.draw(this->shadow_shader_depth);
+
+  glBindVertexArray(waterVAO);
+  //glDisable(GL_DEPTH_TEST);
+  glDrawArrays(GL_TRIANGLES, 0, 6);
+  //glEnable(GL_DEPTH_TEST);
+  glBindVertexArray(0);
+
   glDisable(GL_CULL_FACE);
   glCullFace(GL_BACK);
 

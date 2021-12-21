@@ -62,22 +62,6 @@ void main() {
     vec3 normal = normalize(Normal);
     float shadow = 0.0f;
     if (use_shadow) {
-        /*int layer = find_cascaded_layer();
-
-
-        if (color_cascade_layer) {
-
-            if (layer == NB_CASCADES)
-                debug_color = vec3(-0.5f);
-            else if (layer == 0)
-                debug_color.r += 0.2f;
-            else if (layer == 1)
-                debug_color.g += 0.2f;
-            else if (layer == 2)
-                debug_color.b += 0.2f;
-
-        }*/
-
         vec3 lightDir = normalize(-dirLight.direction);
         shadow = ShadowCalculation(view, FragPosWorldSpace, NB_CASCADES, cascade_z_limits, blend_between_cascade
         , normal, FragPosLightSpace_cascade, lightDir, shadow_biases, pcf, square_sample_size, color_cascade_layer
