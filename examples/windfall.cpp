@@ -195,6 +195,14 @@ float compute_new_light_pos() {
   float x = glm::cos(angle_radian) * radius;
   float y = glm::sin(angle_radian) * radius;
 
+  // Change color of the sun based on angle
+  float alpha = glm::sin(angle_radian);
+  glm::vec4 color_center_zenith = glm::vec4(246 / 255.0f, 197 / 255.0f, 193 / 255.0f, 1.0f);
+  glm::vec4 color_center_rising_sun = glm::vec4(255 / 255.0f, 0 / 255.0f, 0 / 255.0f, 1.0f);
+  glm::vec4 color_angle = alpha * color_center_zenith + (1.f - alpha) * color_center_rising_sun;
+  params.color_center = ImVec4(color_angle.r, color_angle.g, color_angle.b, color_angle.a);
+
+
   params.light_pos[0] = x;
   params.light_pos[1] = y;
   params.light_pos[2] = 0.f;

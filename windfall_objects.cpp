@@ -16,7 +16,7 @@ unsigned int wind_create_VAO() {
   glBindBuffer(GL_ARRAY_BUFFER, windVBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(windVertices), &windVertices, GL_STATIC_DRAW);
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 1, GL_FLOAT, GL_FALSE, 0, (void *) 0);
+  glVertexAttribPointer(0, 1, GL_FLOAT, GL_FALSE, 0, (void *) nullptr);
 
   return windVAO;
 }
@@ -39,7 +39,7 @@ unsigned int water_create_VAO(float heightf) {
   glBindBuffer(GL_ARRAY_BUFFER, waterVBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(waterVertices), &waterVertices, GL_STATIC_DRAW);
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *) 0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *) nullptr);
 
   return waterVAO;
 }
@@ -95,7 +95,7 @@ unsigned int sun_create_VAO(float angle) {
   glBindBuffer(GL_ARRAY_BUFFER, sunVBO);
   glBufferData(GL_ARRAY_BUFFER, sunVertices.size() * sizeof(float), sunVertices.data(), GL_STATIC_DRAW);
 
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)nullptr);
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
@@ -419,7 +419,7 @@ unsigned int shore_create_VAO(int &nb_of_points, float heightf) {
   glBindBuffer(GL_ARRAY_BUFFER, shoreVBO);
   glBufferData(GL_ARRAY_BUFFER, shoreVertices.size() * sizeof(float), shoreVertices.data(), GL_STATIC_DRAW);
 
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *) 0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *) nullptr);
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);

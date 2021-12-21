@@ -37,6 +37,7 @@ unsigned int loadCubemap(const std::vector<std::string> &faces) {
 
 unsigned int loadSkyBox(program *program) {
 
+  // right left top bottom back front
   std::vector<std::string> faces = {
       "images/skybox/back.jpg", "images/skybox/back.jpg", "images/skybox/top.jpg", "images/skybox/back.jpg", "images/skybox/back.jpg", "images/skybox/back.jpg"
   };
