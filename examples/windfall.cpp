@@ -42,7 +42,7 @@ struct {
   int square_sample_size= 2;
   float shadow_bias = 0.125;
   std::vector<float> shadow_biases = {0.268f, 0.088f, 0.049f};
-  float coeff_increase_shadow_frustum_z = 2.350f;
+  float coeff_increase_shadow_frustum_z = 3.2f;
   float coeff_increase_shadow_frustum_xy = 1.2f;
   float near_plane_light = 20.0f, far_plane_light = 90.0f;
   float light_ambient = 0.7f;
@@ -54,7 +54,7 @@ struct {
   float offset = 0.0f;
   float offset_water = 0.0f;
   float znear = 0.1f;
-  float zfar = 300.f;
+  float zfar = 500.f;
   float ortho_bounds[4] = {-50.0f, 50.0f, -60.0f, 70.0f};
   bool ortho_view = false;
   ImVec4 color_border = ImVec4(243.0f / 255.0f, 106.0f / 255.0f, 65.0f / 255.0f, 1.0f);
@@ -63,8 +63,8 @@ struct {
   float sun_magnification = 330.0f;
   float lowest_eye_cancer = 0.1f;
   bool hd = false;
-  float wave_height = -10.05f;
-  float sea_height = -10.267f;
+  float wave_height = -10.0f;
+  float sea_height = -10.f;
   float billboard_size[2] = {5.0f, 1.0f};
   program* program_windfall_with_lighting = nullptr;
 } params;
@@ -127,6 +127,7 @@ void set_im_gui_options(bool use_im_gui) {
       if (ImGui::TreeNode("Water")) {
           ImGui::SliderFloat("Billboard size x", &params.billboard_size[0], 0.0f, 100.0f);
           ImGui::SliderFloat("Billboard size y", &params.billboard_size[1], 0.0f, 10.0f);
+          ImGui::SliderFloat("Water Height", &params.sea_height, -9.5f, -10.5f);
 
           ImGui::TreePop();
           ImGui::Separator();
@@ -281,8 +282,10 @@ void display_water(program* program_water, GLuint waterVAO, const glm::mat4& vie
     set_shadow_uniforms(program_water, cascaded_shadow, shadow, lightSpaceMatrices, 0);
 
     glBindVertexArray(waterVAO);
+  glDisable(GL_DEPTH_TEST);
     glDrawArrays(GL_TRIANGLES, 0, 6);
-    glBindVertexArray(0);
+  glEnable(GL_DEPTH_TEST);
+  glBindVertexArray(0);
 }
 
 void display_normals(program* shader_normals, const glm::mat4& projection, const glm::mat4& view,
@@ -695,6 +698,12 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
       lightSpaceMatrices = computeShadow(shadow, windfall_lowres, SRC_WIDTH, SRC_HEIGHT
           , view, projection, lightDir, model_mat_windfall);
 
+
+    // Display Objects for which you don't care about depth
+    display_skybox(program_skybox, skyboxVAO, cubemapTexture, projection);
+    display_water(program_water, waterVAO, view, projection, shadow, cascaded_shadow, lightSpaceMatrices
+        , lightDir);
+
       // 2. render scene as normal using the generated depth/shadow map
     // --------------------------------------------------------------
 
@@ -726,12 +735,7 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    display_water(program_water, waterVAO, view, projection, shadow, cascaded_shadow, lightSpaceMatrices
-                  , lightDir);
-
     display_normals(shader_normals, projection, view, model_mat_windfall, load_hd_texture, windfall_highres, windfall_lowres);
-
-    display_skybox(program_skybox, skyboxVAO, cubemapTexture, projection);
 
     display_shore(program_shore, helper, shoreVAO, projection, shoreTextures, shadow, cascaded_shadow, nb_of_shore_waves
                   , lightSpaceMatrices, lightDir);
@@ -775,4 +779,3 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
 
 }
 }
-

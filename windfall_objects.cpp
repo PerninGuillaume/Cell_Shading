@@ -372,7 +372,7 @@ unsigned int shore_create_VAO(int &nb_of_points, float heightf) {
   };
 
   glm::mat4 model_mat_windfall = glm::mat4(1.0f);
-  model_mat_windfall = glm::translate(model_mat_windfall, glm::vec3(1.0f, -10.0f, -25.0f));
+  model_mat_windfall = glm::translate(model_mat_windfall, glm::vec3(1.0f, heightf, -25.0f));
   model_mat_windfall = glm::scale(model_mat_windfall, glm::vec3(0.01f, 0.01f, 0.01f));
 
   nb_of_points = 0;
