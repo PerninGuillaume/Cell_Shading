@@ -1,6 +1,6 @@
 #version 450
 layout (points) in;
-layout (triangle_strip, max_vertices=1024) out;
+layout (triangle_strip, max_vertices=256) out;
 
 in vec3 dir[];
 in int animated[];
@@ -16,6 +16,7 @@ uniform mat4 view;
 uniform mat4 projection;
 
 void main() {
+
     if (animated[0] == 0)
         return;
 
@@ -27,7 +28,7 @@ void main() {
     // polynomial equal to 0 at 0, 1 at 0.5, 0 at 1
     float overall_alpha = -4.f * animation_percentage * animation_percentage + 4.f * animation_percentage;
 
-    int max_rectangles = 102;
+    int max_rectangles = 120;
     float size_wind = 50.f;
     float increment = size_wind / max_rectangles;
     vec3 dir_wind = normalize(dir[0]);
@@ -45,7 +46,7 @@ void main() {
             intensity = smoothstep(animation_percentage - delta_apparition, animation_percentage - 0.2f, advance_percentage_bis);
         else {
             intensity = smoothstep(animation_percentage + 0.2f, animation_percentage + delta_apparition, advance_percentage_bis);
-            intensity = (intensity - 0.5f) * -1f + 0.5f; //Inverse the smoothstep function
+            intensity = (intensity - 0.5f) * -1.0f + 0.5f; //Inverse the smoothstep function
         }
         intensity *= overall_alpha;
 
