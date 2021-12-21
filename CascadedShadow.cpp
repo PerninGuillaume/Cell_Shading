@@ -3,6 +3,7 @@
 #include <cmath>
 #include <iostream>
 #include "misc.h"
+#include "Model.h"
 CascadedShadow::CascadedShadow(unsigned int nb_division, unsigned int shadow_width, unsigned int shadow_height)
   : nb_division(nb_division)
   , shadow_width(shadow_width)
@@ -44,6 +45,50 @@ void CascadedShadow::generate_depth_map_frame_buffer() {
   glReadBuffer(GL_NONE);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
+
+std::vector<glm::mat4> CascadedShadow::computeShadowCascaded(const windfall::Param& params, std::shared_ptr<Camera> camera
+     , Model& windfall_lowres, int SRC_WIDTH, int SRC_HEIGHT
+    , const glm::mat4& view, const glm::vec3& lightDir, const glm::mat4& model_mat_windfall) {
+
+  glm::vec3 eye = glm::vec3(params.light_pos[0], params.light_pos[1], params.light_pos[2]);
+
+  glViewport(0, 0, this->shadow_width, this->shadow_height);
+
+  glBindFramebuffer(GL_FRAMEBUFFER, this->depthMapFBO);
+  this->shadow_shader_depth->set_uniform_mat4("model", model_mat_windfall);
+
+  if (params.peter_paning) {
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+  }
+
+  for (unsigned int i = 0; i < this->nb_division; ++i) {
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->depthMapTextures[i], 0); //Bind right depth texture to render to
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+    glm::mat4 projection = glm::perspective(glm::radians(camera->fov_camera), (float)SRC_WIDTH / (float)SRC_HEIGHT,
+                                            this->cascades_delimitations[i], this->cascades_delimitations[i + 1]);
+    this->lightSpaceMatrices[i] = computeLightViewProjMatrix(eye, lightDir, view, projection, params.coeff_increase_shadow_frustum_z, params.coeff_increase_shadow_frustum_xy);
+    this->shadow_shader_depth->set_uniform_mat4("lightSpaceMatrix", this->lightSpaceMatrices[i]);
+    this->shadow_shader_depth->set_uniform_float("alpha_clip", params.alpha_clip);
+
+    windfall_lowres.draw(this->shadow_shader_depth);
+  }
+
+
+  glDisable(GL_CULL_FACE);
+  glCullFace(GL_BACK);
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  // reset viewport
+
+  glViewport(0, 0, SRC_WIDTH, SRC_HEIGHT);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  return this->lightSpaceMatrices;
+}
+
 
 // This function will return the coordinates of the frustrum we are currently using to clip object
 

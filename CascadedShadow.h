@@ -1,5 +1,9 @@
 #pragma once
+#include <memory>
 #include "../program.h"
+#include "../examples/windfall.h"
+#include "Model.h"
+#include "Camera.h"
 
 class CascadedShadow {
  public:
@@ -7,6 +11,9 @@ class CascadedShadow {
 
   void generate_depth_map_texture();
   void generate_depth_map_frame_buffer();
+  std::vector<glm::mat4> computeShadowCascaded(const windfall::Param& params, std::shared_ptr<Camera> camera
+      , Model& windfall_lowres, int SRC_WIDTH, int SRC_HEIGHT
+      , const glm::mat4& view, const glm::vec3& lightDir, const glm::mat4& model_mat_windfall);
 
   program* shadow_shader_depth;
   unsigned int depthMapFBO;

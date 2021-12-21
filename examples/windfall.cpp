@@ -23,51 +23,7 @@ float lastFrame = 0.0f;
 unsigned int NB_CASCADES = 3;
 
 std::shared_ptr<Camera> camera = std::make_shared<Camera>(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-
-struct {
-  bool with_lighting = true;
-  bool wireframe = false;
-  bool use_zAtoon = false;
-  bool no_texture = false;
-  bool display_normals = false;
-  bool use_shadow = true;
-  bool use_cascaded_shadow = true;
-  bool blend_between_cascade = true;
-  int cascadeLevel = 0;
-  bool cascade_show_layers = false;
-  bool fitLightFrustrum = false;
-  bool display_depth_map = false;
-  bool peter_paning = false;
-  bool pcf = true;
-  int square_sample_size= 2;
-  float shadow_bias = 0.125;
-  std::vector<float> shadow_biases = {0.268f, 0.088f, 0.049f};
-  float coeff_increase_shadow_frustum_z = 3.2f;
-  float coeff_increase_shadow_frustum_xy = 1.2f;
-  float near_plane_light = 20.0f, far_plane_light = 90.0f;
-  float light_ambient = 0.7f;
-  float light_diffuse = 0.8f;
-  float light_pos[3] = {-21.0f, 49.0f, -29.0f}; //need a position for shadow
-  float light_shadow_center[3] = {6.0f, 1.0f, -44.0f}; //The point the light will look at
-  ImVec4 some_color = ImVec4(0.45f, 0.55f, 0.6f, 1.00f);
-  float alpha_clip = 0.3f;
-  float offset = 0.0f;
-  float offset_water = 0.0f;
-  float znear = 0.1f;
-  float zfar = 500.f;
-  float ortho_bounds[4] = {-50.0f, 50.0f, -60.0f, 70.0f};
-  bool ortho_view = false;
-  ImVec4 color_border = ImVec4(243.0f / 255.0f, 106.0f / 255.0f, 65.0f / 255.0f, 1.0f);
-  ImVec4 color_center = ImVec4(246 / 255.0f, 197 / 255.0f, 193 / 255.0f, 1.0f);
-  ImVec4 color_gradient = ImVec4(146 / 255.0f, 145 / 255.0f, 7 / 255.0f, 1.0f);
-  float sun_magnification = 330.0f;
-  float lowest_eye_cancer = 0.1f;
-  bool hd = false;
-  float wave_height = -10.0f;
-  float sea_height = -10.f;
-  float billboard_size[2] = {5.0f, 1.0f};
-  program* program_windfall_with_lighting = nullptr;
-} params;
+Param params;
 
 void set_im_gui_options(bool use_im_gui) {
 
@@ -182,91 +138,46 @@ void set_shadow_uniforms(program* program, const CascadedShadow& cascaded_shadow
 
 }
 
-std::vector<glm::mat4> computeShadow(const Shadow& shadow, Model& windfall_lowres, int SRC_WIDTH, int SRC_HEIGHT
-                               , const glm::mat4& view, const glm::mat4& projection, const glm::vec3& lightDir, const glm::mat4& model_mat_windfall) {
-  glm::mat4 lightProjection, lightView;
-  glm::mat4 lightSpaceMatrix;
-  lightProjection = glm::ortho(params.ortho_bounds[0], params.ortho_bounds[1], params.ortho_bounds[2], params.ortho_bounds[3], params.near_plane_light, params.far_plane_light);
-  glm::vec3 eye = glm::vec3(params.light_pos[0], params.light_pos[1], params.light_pos[2]);
-  glm::vec3 center = glm::vec3(params.light_shadow_center[0], params.light_shadow_center[1], params.light_shadow_center[2]);
-  glm::vec3 up = glm::vec3(0.6f, 0.02f, -0.77f);
-  lightView = glm::lookAt(eye,
-                          center,
-                          up);
+void display_depth_map(program* quad_depth_shader, const Shadow& shadow, const CascadedShadow& cascaded_shadow) {
+  if (params.display_depth_map) {
 
-  if (params.fitLightFrustrum)
-    lightSpaceMatrix= computeLightViewProjMatrix(eye, lightDir, view, projection, params.coeff_increase_shadow_frustum_z, params.coeff_increase_shadow_frustum_xy);
-  else
-    lightSpaceMatrix = lightProjection * lightView;
-
-  glViewport(0, 0, shadow.shadow_width, shadow.shadow_height);
-  glBindFramebuffer(GL_FRAMEBUFFER, shadow.depthMapFBO);
-  glClear(GL_DEPTH_BUFFER_BIT);
-
-
-
-  shadow.shadow_shader_depth->set_uniform_mat4("model", model_mat_windfall);
-  shadow.shadow_shader_depth->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
-  shadow.shadow_shader_depth->set_uniform_float("alpha_clip", params.alpha_clip);
-
-  if (params.peter_paning) {
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
+    quad_depth_shader->use();
+    quad_depth_shader->set_uniform_int("depthMap", 0);
+    quad_depth_shader->set_uniform_float("near_plane", params.near_plane_light);
+    quad_depth_shader->set_uniform_float("far_plane", params.far_plane_light);
+    glActiveTexture(GL_TEXTURE0);
+    if (params.use_cascaded_shadow)
+      glBindTexture(GL_TEXTURE_2D, cascaded_shadow.depthMapTextures[params.cascadeLevel]);
+    else
+      glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
+    renderQuad_corner();
   }
-  windfall_lowres.draw(shadow.shadow_shader_depth);
-  glDisable(GL_CULL_FACE);
-  glCullFace(GL_BACK);
 
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-  // reset viewport
-
-  glViewport(0, 0, SRC_WIDTH, SRC_HEIGHT);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-  return {lightSpaceMatrix};
 }
 
-std::vector<glm::mat4> computeShadowCascaded(CascadedShadow& shadow, Model& windfall_lowres, int SRC_WIDTH, int SRC_HEIGHT
-    , const glm::mat4& view, const glm::vec3& lightDir, const glm::mat4& model_mat_windfall) {
+void display_windfall(program* program_windfall, const glm::mat4& model_mat_windfall, const glm::mat4& view
+  , const glm::mat4& projection, const glm::vec3& lightDir, float eye_cancer, const Shadow& shadow, const CascadedShadow& cascaded_shadow
+  , const std::vector<glm::mat4>& lightSpaceMatrices, bool load_hd_texture, Model& windfall_highres, Model& windfall_lowres) {
 
-  glm::vec3 eye = glm::vec3(params.light_pos[0], params.light_pos[1], params.light_pos[2]);
+  program_windfall->set_uniform_mat4("model", model_mat_windfall);
+  program_windfall->set_uniform_mat4("view", view);
+  program_windfall->set_uniform_mat4("projection", projection);
+  program_windfall->set_uniform_float("alpha_clip", params.alpha_clip);
+  program_windfall->set_uniform_bool("use_zAtoon", params.use_zAtoon);
+  program_windfall->set_uniform_bool("no_texture", params.no_texture);
 
-  glViewport(0, 0, shadow.shadow_width, shadow.shadow_height);
+  program_windfall->set_uniform_vec3("dirLight.direction", lightDir);
 
-  glBindFramebuffer(GL_FRAMEBUFFER, shadow.depthMapFBO);
-  shadow.shadow_shader_depth->set_uniform_mat4("model", model_mat_windfall);
+  program_windfall->set_uniform_vec3("dirLight.ambient", params.light_ambient * eye_cancer);
+  program_windfall->set_uniform_vec3("dirLight.diffuse", params.light_diffuse * eye_cancer);
 
-  if (params.peter_paning) {
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
-  }
+  set_shadow_uniforms(program_windfall, cascaded_shadow, shadow, lightSpaceMatrices, 1);
 
-  for (unsigned int i = 0; i < shadow.nb_division; ++i) {
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadow.depthMapTextures[i], 0); //Bind right depth texture to render to
-    glClear(GL_DEPTH_BUFFER_BIT);
+  if (params.hd && load_hd_texture)
+    windfall_highres.draw(program_windfall);
+  else
+    windfall_lowres.draw(program_windfall);
 
-    glm::mat4 projection = glm::perspective(glm::radians(camera->fov_camera), (float)SRC_WIDTH / (float)SRC_HEIGHT,
-                                  shadow.cascades_delimitations[i], shadow.cascades_delimitations[i + 1]);
-    shadow.lightSpaceMatrices[i] = computeLightViewProjMatrix(eye, lightDir, view, projection, params.coeff_increase_shadow_frustum_z, params.coeff_increase_shadow_frustum_xy);
-    shadow.shadow_shader_depth->set_uniform_mat4("lightSpaceMatrix", shadow.lightSpaceMatrices[i]);
-    shadow.shadow_shader_depth->set_uniform_float("alpha_clip", params.alpha_clip);
-
-    windfall_lowres.draw(shadow.shadow_shader_depth);
-  }
-
-
-  glDisable(GL_CULL_FACE);
-  glCullFace(GL_BACK);
-
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-  // reset viewport
-
-  glViewport(0, 0, SRC_WIDTH, SRC_HEIGHT);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-  return shadow.lightSpaceMatrices;
 }
 
 void display_water(program* program_water, GLuint waterVAO, const glm::mat4& view, const glm::mat4& projection
@@ -693,11 +604,9 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
     lightDir = glm::normalize(lightDir);
     std::vector<glm::mat4> lightSpaceMatrices;
     if (params.use_cascaded_shadow)
-      lightSpaceMatrices = computeShadowCascaded(cascaded_shadow, windfall_lowres, SRC_WIDTH, SRC_HEIGHT, view, lightDir, model_mat_windfall);
+      lightSpaceMatrices = cascaded_shadow.computeShadowCascaded(params, camera, windfall_lowres, SRC_WIDTH, SRC_HEIGHT, view, lightDir, model_mat_windfall);
     else
-      lightSpaceMatrices = computeShadow(shadow, windfall_lowres, SRC_WIDTH, SRC_HEIGHT
-          , view, projection, lightDir, model_mat_windfall);
-
+      lightSpaceMatrices = shadow.computeShadow(params, windfall_lowres, SRC_WIDTH, SRC_HEIGHT, view, projection, lightDir, model_mat_windfall);
 
     // Display Objects for which you don't care about depth
     display_skybox(program_skybox, skyboxVAO, cubemapTexture, projection);
@@ -707,31 +616,13 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
       // 2. render scene as normal using the generated depth/shadow map
     // --------------------------------------------------------------
 
-
     float alignment = glm::dot(camera->front, glm::vec3(0.0f, 1.0f, 0.0f));
     // Variable measuring by how much we are looking at the sun, 1.0f being the highest possible value
     float alignment_limit = 0.9f; // By this value we can view the sun
     float eye_cancer = get_eye_cancer(alignment, alignment_limit, params.lowest_eye_cancer);
 
-    program_windfall->set_uniform_mat4("model", model_mat_windfall);
-    program_windfall->set_uniform_mat4("view", view);
-    program_windfall->set_uniform_mat4("projection", projection);
-    program_windfall->set_uniform_float("alpha_clip", params.alpha_clip);
-    program_windfall->set_uniform_bool("use_zAtoon", params.use_zAtoon);
-    program_windfall->set_uniform_bool("no_texture", params.no_texture);
-
-    program_windfall->set_uniform_vec3("dirLight.direction", lightDir);
-
-    program_windfall->set_uniform_vec3("dirLight.ambient", params.light_ambient * eye_cancer);
-    program_windfall->set_uniform_vec3("dirLight.diffuse", params.light_diffuse * eye_cancer);
-
-    set_shadow_uniforms(program_windfall, cascaded_shadow, shadow, lightSpaceMatrices, 1);
-
-    if (params.hd && load_hd_texture)
-      windfall_highres.draw(program_windfall);
-    else
-      windfall_lowres.draw(program_windfall);
-
+    display_windfall(program_windfall, model_mat_windfall, view, projection, lightDir, eye_cancer, shadow, cascaded_shadow
+        , lightSpaceMatrices, load_hd_texture, windfall_highres, windfall_lowres);
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -748,20 +639,7 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
 
     display_wind(program_wind, windVAO, view, projection);
 
-      //------------------Depth Map----------------------------------
-    if (params.display_depth_map) {
-
-      quad_depth_shader->use();
-      quad_depth_shader->set_uniform_int("depthMap", 0);
-      quad_depth_shader->set_uniform_float("near_plane", params.near_plane_light);
-      quad_depth_shader->set_uniform_float("far_plane", params.far_plane_light);
-      glActiveTexture(GL_TEXTURE0);
-      if (params.use_cascaded_shadow)
-        glBindTexture(GL_TEXTURE_2D, cascaded_shadow.depthMapTextures[params.cascadeLevel]);
-      else
-        glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
-      renderQuad_corner();
-    }
+    display_depth_map(quad_depth_shader, shadow, cascaded_shadow);
 
     set_im_gui_options(use_im_gui);
 
