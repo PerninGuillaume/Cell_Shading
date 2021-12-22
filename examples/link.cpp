@@ -117,7 +117,7 @@ void display(GLFWwindow *window) {
     glClear(GL_DEPTH_BUFFER_BIT);
     //Render link
     shadow_shader_depth->set_uniform_mat4("model", model);
-    shadow_shader_depth->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
+    shadow_shader_depth->set_uniform_mat4("lightSpaceMatrices", lightSpaceMatrix);
 
     link.draw(shadow_shader_depth);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -148,7 +148,7 @@ void display(GLFWwindow *window) {
     shader->set_uniform_vec3("dirLight.ambient",  light_ambient);
     shader->set_uniform_vec3("dirLight.diffuse", light_diffuse); // darken diffuse light a bit
     //shader->set_uniform_vec3("viewPos", camera->position);
-    shader->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
+    shader->set_uniform_mat4("lightSpaceMatrices", lightSpaceMatrix);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
 

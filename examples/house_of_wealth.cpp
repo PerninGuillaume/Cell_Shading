@@ -239,7 +239,7 @@ void display(GLFWwindow *window, bool use_hd_texture) {
     model_mat_link = glm::scale(model_mat_link, glm::vec3(0.5));
 
     shadow_shader_depth->set_uniform_mat4("model", model_mat_link);
-    shadow_shader_depth->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
+    shadow_shader_depth->set_uniform_mat4("lightSpaceMatrices", lightSpaceMatrix);
 
     if (params.peter_paning)
       glCullFace(GL_FRONT);
@@ -294,7 +294,7 @@ void display(GLFWwindow *window, bool use_hd_texture) {
     shader_house->set_uniform_mat4("model", model_house);
 
     shader_house->set_uniform_int("shadowMap", 1);
-    shader_house->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
+    shader_house->set_uniform_mat4("lightSpaceMatrices", lightSpaceMatrix);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
 
@@ -313,7 +313,7 @@ void display(GLFWwindow *window, bool use_hd_texture) {
     shader_character->set_uniform_bool("use_zAtoon", params.use_zAtoon_character);
 
     shader_character->set_uniform_int("shadowMap", 0);
-    shader_character->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
+    shader_character->set_uniform_mat4("lightSpaceMatrices", lightSpaceMatrix);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
 
@@ -327,7 +327,7 @@ void display(GLFWwindow *window, bool use_hd_texture) {
     //TODO why is the triforce on his hand weird
 
     shader_character->set_uniform_int("shadowMap", 1);
-    shader_character->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
+    shader_character->set_uniform_mat4("lightSpaceMatrices", lightSpaceMatrix);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, shadow.depthMapTexture);
 
