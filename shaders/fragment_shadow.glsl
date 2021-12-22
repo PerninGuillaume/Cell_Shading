@@ -31,8 +31,6 @@ void compute_percentage_sampling_shadow_map(int layer, mat4 view, vec3 FragPosWo
     float inverse_band_blend_percentage = 1.f - band_blend_percentage;
 
     if (percentage_in_current_cascade < band_blend_percentage && layer != 0) { // Just after beginning of cascade
-        //if (color_cascade_layer)
-        //    debug_color -= vec3(0.5f);
 
         float size_previous_band_blend = (cascade_z_limits[layer] - cascade_z_limits[layer - 1]) * band_blend_percentage;
         float percentage_in_current_band = (depth - cascade_z_limits[layer] + size_previous_band_blend) / (size_current_band_blend + size_previous_band_blend);
@@ -67,7 +65,8 @@ void compute_percentage_sampling_shadow_map(int layer, mat4 view, vec3 FragPosWo
 }
 
 float shadow_percentage(int layer, vec3 normal, vec4 FragPosLightSpace_cascade[NB_CASCADES]
-, sampler2D shadowMap_cascade[NB_CASCADES], vec3 lightDir, float shadow_biases[NB_CASCADES], bool pcf, int square_sample_size)
+    , sampler2D first_shadowMap_cascade, sampler2D second_shadowMap_cascade, sampler2D third_shadowMap_cascade, vec3 lightDir
+    , float shadow_biases[NB_CASCADES], bool pcf, int square_sample_size)
 {
     vec4 fragPosLightSpace = FragPosLightSpace_cascade[layer];
 
@@ -79,7 +78,19 @@ float shadow_percentage(int layer, vec3 normal, vec4 FragPosLightSpace_cascade[N
         return 0.0;
     }
     // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
-    float closestDepth = texture(shadowMap_cascade[layer], projCoords.xy).r;
+    float closestDepth = 0.f;
+    vec2 texelSize = vec2(0.f);
+    if (layer == 0) {
+        closestDepth = texture(first_shadowMap_cascade, projCoords.xy).r;
+        texelSize = 1.0 / textureSize(first_shadowMap_cascade, 0);
+    }
+    else if (layer == 1) {
+        closestDepth = texture(second_shadowMap_cascade, projCoords.xy).r;
+        texelSize = 1.0 / textureSize(second_shadowMap_cascade, 0);
+    } else {
+        closestDepth = texture(third_shadowMap_cascade, projCoords.xy).r;
+        texelSize = 1.0 / textureSize(second_shadowMap_cascade, 0);
+    }
     // get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
     // check whether current frag pos is in shadow
@@ -90,17 +101,25 @@ float shadow_percentage(int layer, vec3 normal, vec4 FragPosLightSpace_cascade[N
     if (pcf) {
         shadow = 0.0;
         float nb_samples = pow(square_sample_size * 2 + 1, 2);
-        vec2 texelSize = 1.0 / textureSize(shadowMap_cascade[layer], 0);
         for (int x = -square_sample_size; x <= square_sample_size; ++x)
         {
             for (int y = -square_sample_size; y <= square_sample_size; ++y)
             {
-                float pcfDepth = texture(shadowMap_cascade[layer], projCoords.xy + vec2(x, y) * texelSize).r;
+                float pcfDepth = 0.f;
+                if (layer == 0) {
+                    pcfDepth = texture(first_shadowMap_cascade, projCoords.xy + vec2(x, y) * texelSize).r;
+                }
+                else if (layer == 1) {
+                    pcfDepth = texture(second_shadowMap_cascade, projCoords.xy + vec2(x, y) * texelSize).r;
+                } else {
+                    pcfDepth = texture(third_shadowMap_cascade, projCoords.xy + vec2(x, y) * texelSize).r;
+                }
                 shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;
             }
         }
         shadow /= nb_samples;
-    } else {
+    }
+    else {
         shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
     }
 
@@ -109,7 +128,8 @@ float shadow_percentage(int layer, vec3 normal, vec4 FragPosLightSpace_cascade[N
 
 float ShadowCalculation(mat4 view, vec3 FragPosWorldSpace, int nb_cascades, float cascade_z_limits[NB_CASCADES + 1]
 , bool blend_between_cascade, vec3 normal, vec4 FragPosLightSpace_cascade[NB_CASCADES], vec3 lightDir, float shadow_biases[NB_CASCADES]
-, bool pcf, int square_sample_size, bool color_cascade_layer, sampler2D shadowMap_cascade[NB_CASCADES], out vec3 debug_color_out)
+, bool pcf, int square_sample_size, bool color_cascade_layer, sampler2D first_shadowMap_cascade
+, sampler2D second_shadowMap_cascade, sampler2D third_shadowMap_cascade, out vec3 debug_color_out)
 {
     int layer = find_cascaded_layer(view, FragPosWorldSpace, nb_cascades, cascade_z_limits);
 
@@ -130,17 +150,20 @@ float ShadowCalculation(mat4 view, vec3 FragPosWorldSpace, int nb_cascades, floa
     }
 
     if (!blend_between_cascade) {
-        return shadow_percentage(layer, normal, FragPosLightSpace_cascade, shadowMap_cascade, lightDir, shadow_biases, pcf, square_sample_size);
+        return shadow_percentage(layer, normal, FragPosLightSpace_cascade, first_shadowMap_cascade, second_shadowMap_cascade
+        , third_shadowMap_cascade, lightDir, shadow_biases, pcf, square_sample_size);
     }
 
     compute_percentage_sampling_shadow_map(layer, view, FragPosWorldSpace, cascade_z_limits, color_cascade_layer);
 
     float total_shadow = 0.f;
     total_shadow += percentage_sampling[0]
-    * shadow_percentage(layer_index_sampling[0], normal, FragPosLightSpace_cascade, shadowMap_cascade, lightDir, shadow_biases, pcf, square_sample_size);
+    * shadow_percentage(layer_index_sampling[0], normal, FragPosLightSpace_cascade, first_shadowMap_cascade, second_shadowMap_cascade
+    , third_shadowMap_cascade, lightDir, shadow_biases, pcf, square_sample_size);
     if (layer_index_sampling[1] != -1) {
         total_shadow += percentage_sampling[1]
-        * shadow_percentage(layer_index_sampling[1], normal, FragPosLightSpace_cascade, shadowMap_cascade, lightDir, shadow_biases, pcf, square_sample_size);
+        * shadow_percentage(layer_index_sampling[1], normal, FragPosLightSpace_cascade, first_shadowMap_cascade
+        , second_shadowMap_cascade, third_shadowMap_cascade, lightDir, shadow_biases, pcf, square_sample_size);
     }
     debug_color_out = debug_color;
 

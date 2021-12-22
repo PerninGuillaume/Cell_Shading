@@ -1,6 +1,6 @@
 #version 450
 layout (points) in;
-layout (triangle_strip, max_vertices=1024) out;
+layout (triangle_strip, max_vertices=256) out;
 
 in vec3 dir[];
 in int animated[];

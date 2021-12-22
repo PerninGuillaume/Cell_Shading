@@ -121,7 +121,8 @@ void set_shadow_uniforms(program* program, const CascadedShadow& cascaded_shadow
   program->set_uniform_int("square_sample_size", params.square_sample_size);
   program->set_uniform_bool("pcf", params.pcf);
   program->set_uniform_bool("color_cascade_layer", params.cascade_show_layers);
-  program->set_uniform_vector_int("shadowMap_cascade", shadowMap_sampler_index.size(), shadowMap_sampler_index.data());
+  program->set_uniform_int("first_shadowMap_cascade", shadowMap_sampler_index[0]);
+  program->set_uniform_int("second_shadowMap_cascade", shadowMap_sampler_index[1]);
   program->set_uniform_bool("blend_between_cascade", params.blend_between_cascade);
 
   if (params.use_cascaded_shadow) {
@@ -630,7 +631,7 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
 
 
   // Shadow
-  unsigned int size_shadow_texture = 4096;
+  unsigned int size_shadow_texture = 512;
   Shadow shadow = Shadow(size_shadow_texture, size_shadow_texture);
   CascadedShadow cascaded_shadow = CascadedShadow(NB_CASCADES, size_shadow_texture, size_shadow_texture);
 
@@ -714,14 +715,21 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
     // 1. Render depth of scene to texture (from light's perspective)
     // --------------------------------------------------------------
 
-    glm::vec3 lightDir = glm::vec3(params.light_shadow_center[0] - params.light_pos[0], params.light_shadow_center[1] - params.light_pos[1]
-        , params.light_shadow_center[2] - params.light_pos[2]);
-    lightDir = glm::normalize(lightDir);
-    std::vector<glm::mat4> lightSpaceMatrices;
-    if (params.use_cascaded_shadow)
-      lightSpaceMatrices = cascaded_shadow.computeShadowCascaded(params, camera, windfall_lowres, SRC_WIDTH, SRC_HEIGHT, view, lightDir, model_mat_windfall, waterVAO);
-    else
-      lightSpaceMatrices = shadow.computeShadow(params, windfall_lowres, SRC_WIDTH, SRC_HEIGHT, view, projection, lightDir, model_mat_windfall, waterVAO);
+      glm::vec3 lightDir = glm::vec3(params.light_shadow_center[0] - params.light_pos[0],
+                                     params.light_shadow_center[1] - params.light_pos[1],
+                                     params.light_shadow_center[2] - params.light_pos[2]);
+
+      std::vector<glm::mat4> lightSpaceMatrices;
+      if (params.use_shadow) {
+        lightDir = glm::normalize(lightDir);
+        if (params.use_cascaded_shadow)
+            lightSpaceMatrices = cascaded_shadow.computeShadowCascaded(params, camera, windfall_lowres, SRC_WIDTH,
+                                                                       SRC_HEIGHT, view, lightDir, model_mat_windfall,
+                                                                       waterVAO);
+        else
+            lightSpaceMatrices = shadow.computeShadow(params, windfall_lowres, SRC_WIDTH, SRC_HEIGHT, view, projection,
+                                                      lightDir, model_mat_windfall, waterVAO);
+    }
 
     // Display Objects for which you don't care about depth
     display_skybox(program_skybox, skyboxVAO, cubemapTexture, projection);
