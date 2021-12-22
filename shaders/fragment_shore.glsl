@@ -21,7 +21,6 @@ uniform sampler2D tex_alpha_wave;
 uniform sampler2D tex_black_wave;
 uniform sampler2D tex_limit_wave;
 uniform sampler2D tex_mask_wave;
-uniform float alpha_clip;
 uniform float offset;
 uniform DirLight dirLight;
 

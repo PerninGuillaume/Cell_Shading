@@ -21,6 +21,7 @@ namespace windfall {
 
 float lastFrame = 0.0f;
 unsigned int NB_CASCADES = 3;
+const unsigned int NB_WAVES = 200;
 
 std::shared_ptr<Camera> camera = std::make_shared<Camera>(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 Param params;
@@ -415,7 +416,6 @@ void display_waves(program* program_waves, const std::vector<unsigned int>& wave
 //    view = glm::translate(view, glm::vec3(-offset * 10));
     program_waves->set_uniform_mat4("view", view);
     program_waves->set_uniform_mat4("projection", projection);
-    program_waves->set_uniform_float("alpha_clip", params.alpha_clip);
     program_waves->set_uniform_mat4("model", model_mat_waves);
     program_waves->set_uniform_vec3("camera_right", camera->right);
     program_waves->set_uniform_vec3("camera_up", camera->up);
@@ -438,7 +438,7 @@ void display_waves(program* program_waves, const std::vector<unsigned int>& wave
             wave_new_cycle_has_begun[i] = false;
         }
         program_waves->set_uniform_float("apex_percentage", percentage_apex);
-        program_waves->set_uniform_float("dispacement_percentage", percentage_displacement);
+        program_waves->set_uniform_float("displacement_percentage", percentage_displacement);
         program_waves->set_uniform_vec3("billboard_size", billboard_sizes[i][0],
                                         billboard_sizes[i][1] * percentage_apex, 0.0f);
         program_waves->set_uniform_vec3("wave_center", waves_center[i]);
@@ -449,6 +449,52 @@ void display_waves(program* program_waves, const std::vector<unsigned int>& wave
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
     }
+}
+
+void display_waves_instanced(program* program_waves, GLuint wave_VAO, const glm::mat4& projection
+    , const glm::vec3& center_of_waves, std::vector<bool>& wave_new_cycle_has_begun
+    , std::vector<glm::vec3>& waves_center, GLuint wavesTexture) {
+
+  static const size_t nb_waves = 100;
+  std::vector<glm::vec3> billboard_sizes(nb_waves, glm::vec3(params.billboard_size[0], params.billboard_size[1], 0.0f));
+  static std::array<float, nb_waves> percentage_displacements{};
+  static std::array<float, nb_waves> apex_percentages{};
+
+  program_waves->set_uniform_int("tex_wave", 0);
+  glm::mat4 view = camera->view_matrix();
+
+  program_waves->set_uniform_mat4("view", view);
+  program_waves->set_uniform_mat4("projection", projection);
+  program_waves->set_uniform_float("alpha_clip", params.alpha_clip);
+  program_waves->set_uniform_vec3("camera_right", camera->right);
+  program_waves->set_uniform_vec3("camera_up", camera->up);
+
+
+  program_waves->set_uniform_vec3("center_waves", center_of_waves);
+  for (size_t i = 0; i < nb_waves; ++i) {
+    float percentage_apex = glm::sin(glfwGetTime() + (float)i);
+    float percentage_displacement = fmod(glfwGetTime() + (float)i, 2 * PI) / (2 * PI);
+    if (percentage_apex < 0.0f && !wave_new_cycle_has_begun[i]) {
+      wave_new_cycle_has_begun[i] = true;
+      billboard_sizes[i][0] += rand() % 100;
+      billboard_sizes[i][1] += rand() % 100;
+    } else if (percentage_apex > 0.0f) {
+      wave_new_cycle_has_begun[i] = false;
+    }
+    billboard_sizes[i] = glm::vec3(billboard_sizes[i][0],
+                                    billboard_sizes[i][1] * percentage_apex, 0.0f);
+    apex_percentages[i] = percentage_apex;
+    percentage_displacements[i] = percentage_displacement;
+  }
+
+  program_waves->set_uniform_vector_vec3("wave_center", waves_center.size(), waves_center.data());
+  program_waves->set_uniform_vector_vec3("billboard_size", billboard_sizes.size(), billboard_sizes.data());
+  program_waves->set_uniform_vector_float("displacement_percentage", percentage_displacements.size(), percentage_displacements.data());
+  program_waves->set_uniform_vector_float("apex_percentage", apex_percentages.size(), apex_percentages.data());
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, wavesTexture);
+  glBindVertexArray(wave_VAO);
+  glDrawArraysInstanced(GL_TRIANGLES, 0, 6, nb_waves);
 }
 
 void display_wind(program* program_wind, GLuint windVAO, const glm::mat4& view, const glm::mat4& projection) {
@@ -607,8 +653,8 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
   unsigned int wavesTexture = loadWaves();
   std::vector<glm::vec3> waves_center;
   glm::vec3 center_of_waves = glm::vec3(-3.0f, 0.0f, -20.0f);
-  std::vector<unsigned int> waves_VAO = waves_create_VAO_vector(waves_center, center_of_waves);
-  std::vector<bool> wave_new_cycle_has_begun(waves_VAO.size(), false);
+  unsigned int waveVAO = waves_create_VAO_vector(NB_WAVES, waves_center, center_of_waves);
+  std::vector<bool> wave_new_cycle_has_begun(NB_WAVES, false);
 
   // Wind
   unsigned int windVAO = wind_create_VAO();
@@ -696,7 +742,7 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
 
     display_clouds(program_clouds, cloudsVAO, helper, cloudsTextures, projection);
 
-    display_waves(program_waves, waves_VAO, projection, center_of_waves, wave_new_cycle_has_begun, waves_center, wavesTexture);
+    display_waves_instanced(program_waves, waveVAO, projection, center_of_waves, wave_new_cycle_has_begun, waves_center, wavesTexture);
 
     display_wind(program_wind, windVAO, view, projection);
 

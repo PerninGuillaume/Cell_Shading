@@ -136,10 +136,8 @@ unsigned int loadWaves()
   return load_image(file);
 }
 
-std::vector<unsigned int> waves_create_VAO_vector(std::vector<glm::vec3> &waves_center, const glm::vec3& center_of_waves) {
-  std::vector<unsigned int> waves_VAO;
+unsigned int waves_create_VAO_vector(int nb_of_waves, std::vector<glm::vec3> &waves_center, const glm::vec3& center_of_waves) {
   std::vector<float> angles = {};
-  int nb_of_waves = 1000;
   for (int i = 0; i < nb_of_waves; i ++)
   {
     angles.push_back(i * 360 / nb_of_waves);
@@ -149,13 +147,12 @@ std::vector<unsigned int> waves_create_VAO_vector(std::vector<glm::vec3> &waves_
   float base_height = -2.0f;
   float middle_height = -10.0f;
 
-  for (const auto & angle : angles)
-  {
+  for (const auto & angle : angles) {
     float nb = rand() % 50;
     float nb2 = rand() % 50;
     int radius_max = 500;
     int radius_min = 75;
-    float r = -1.0f * (rand()%(radius_max-radius_min + 1) + radius_min);
+    float r = -1.0f * (rand() % (radius_max - radius_min + 1) + radius_min);
 
     float x_start = (r * cos((angle - nb) * PI / 180.0f));
     float x_end = (r * cos((angle + nb2) * PI / 180.0f));
@@ -164,30 +161,23 @@ std::vector<unsigned int> waves_create_VAO_vector(std::vector<glm::vec3> &waves_
     glm::vec3 center_wave = glm::vec3((x_end + x_start) / 2.0f, middle_height, (y_end + y_start) / 2.0f);
     waves_center.push_back(center_wave + center_of_waves);
 
-    std::vector<float> vertices = {
-        // position                tex coords
-        -0.5f,  base_height, 0.5f,            1.0f, 1.0f,
-        0.5f,  base_height, -0.5f,            0.0f, 1.0f,
-        0.5f,  height, -0.5f,            0.0f, 0.0f,
-        0.5f,  height, -0.5f,            0.0f, 0.0f,
-        -0.5f,  height, 0.5f,            1.0f, 0.0f,
-        -0.5f,  base_height, 0.5f,            1.0f, 1.0f
-    };
-    unsigned int waveVAO, waveVBO;
-    glGenVertexArrays(1, &waveVAO);
-    glGenBuffers(1, &waveVBO);
-    glBindVertexArray(waveVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, waveVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    waves_VAO.push_back(waveVAO);
-
   }
 
-  return waves_VAO;
+  std::vector<float> vertices = {
+      // position                tex coords
+      -0.5f, base_height, 0.5f, 1.0f, 1.0f, 0.5f, base_height, -0.5f, 0.0f, 1.0f, 0.5f, height, -0.5f, 0.0f, 0.0f, 0.5f, height, -0.5f, 0.0f, 0.0f, -0.5f, height, 0.5f, 1.0f, 0.0f, -0.5f, base_height, 0.5f, 1.0f, 1.0f
+  };
+  unsigned int waveVAO, waveVBO;
+  glGenVertexArrays(1, &waveVAO);
+  glGenBuffers(1, &waveVBO);
+  glBindVertexArray(waveVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, waveVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+  glEnableVertexAttribArray(1);
+
+  return waveVAO;
 }

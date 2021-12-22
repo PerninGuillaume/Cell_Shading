@@ -3,14 +3,13 @@
 out vec4 FragColor;
 
 in vec2 TexCoords;
+in float apex_percentage_frag;
 
 uniform sampler2D tex_wave;
-uniform float alpha_clip;
-uniform float apex_percentage;
 
 void main()
 {
-    if (apex_percentage < 0.0f) {
+    if (apex_percentage_frag < 0.0f) {
         discard;
     }
     vec4 texColor_cloud = texture(tex_wave, TexCoords);
@@ -20,5 +19,5 @@ void main()
             discard;
         }
     }
-    FragColor = vec4(vec3(texColor_cloud), apex_percentage * texColor_cloud.a);
+    FragColor = vec4(vec3(texColor_cloud), apex_percentage_frag * texColor_cloud.a);
 }
