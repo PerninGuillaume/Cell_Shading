@@ -43,9 +43,9 @@ add_executable(imgui_demo
         imgui-1.83/backends/imgui_impl_glfw.cpp
         imgui-1.83/backends/imgui_impl_opengl3.cpp)
 
-target_link_libraries(TP1 -lGLEW -lGL glfw -lX11 -lpthread -lXrandr -ldl -lassimp -fsanitize=address)
+target_link_libraries(TP1 -lGLEW -lGL glfw -lX11 -lpthread -lXrandr -ldl -lassimp)
 target_link_libraries(imgui_demo -lGLEW -lGL glfw -lX11 -lpthread -lXrandr -ldl -lassimp)
 
 include_directories(imgui-1.83 imgui-1.83/backends)
 
-target_compile_options(TP1 PRIVATE -Wextra -Wall -fsanitize=address -g)
+target_compile_options(TP1 PRIVATE -Wextra -Wall)

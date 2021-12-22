@@ -82,7 +82,7 @@ unsigned int sun_create_VAO(float angle) {
       x_end, height,  z_start,      0.0f, 1.0f,
       x_end, height, z_end,     0.0f, 0.0f,
   };
-  for (int i = 0; i < sunVertices.size(); i+=5) {
+  for (size_t i = 0; i < sunVertices.size(); i+=5) {
     float new_x = sunVertices[i] * cos(angle) - sunVertices[i + 1] * sin(angle);
     float new_y = sunVertices[i] * sin(angle) + sunVertices[i + 1] * cos(angle);
     sunVertices[i] = new_x;

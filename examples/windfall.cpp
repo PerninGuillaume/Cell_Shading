@@ -185,7 +185,7 @@ void display_windfall(program* program_windfall, const glm::mat4& model_mat_wind
 }
 
 float compute_new_light_pos() {
-  float radius = 1.f;
+  float radius = 50.f;
   float period_day = 380.0f;
   float t = fmod(glfwGetTime(), period_day);
 
