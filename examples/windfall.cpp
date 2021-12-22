@@ -123,6 +123,7 @@ void set_shadow_uniforms(program* program, const CascadedShadow& cascaded_shadow
   program->set_uniform_bool("color_cascade_layer", params.cascade_show_layers);
   program->set_uniform_int("first_shadowMap_cascade", shadowMap_sampler_index[0]);
   program->set_uniform_int("second_shadowMap_cascade", shadowMap_sampler_index[1]);
+  program->set_uniform_int("third_shadowMap_cascade", shadowMap_sampler_index[2]);
   program->set_uniform_bool("blend_between_cascade", params.blend_between_cascade);
 
   if (params.use_cascaded_shadow) {
@@ -631,7 +632,7 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
 
 
   // Shadow
-  unsigned int size_shadow_texture = 512;
+  unsigned int size_shadow_texture = 4096;
   Shadow shadow = Shadow(size_shadow_texture, size_shadow_texture);
   CascadedShadow cascaded_shadow = CascadedShadow(NB_CASCADES, size_shadow_texture, size_shadow_texture);
 
