@@ -92,6 +92,7 @@ program *program::make_program_multiple_files(const std::string &vertex_shader_f
       std::cout << geometry_shader_filename << " is read to be empty !\n";
     GLuint my_geometry_shader = glCreateShader(GL_GEOMETRY_SHADER);
     const GLchar *geometry_src = (const GLchar*)geometry_shader_src.c_str();
+    program_res->shaders_.emplace_back(my_geometry_shader);
     glShaderSource(my_geometry_shader, 1, &geometry_src, 0);
     glCompileShader(my_geometry_shader);
     glAttachShader(my_program, my_geometry_shader);

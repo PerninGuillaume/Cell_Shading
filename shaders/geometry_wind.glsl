@@ -46,7 +46,7 @@ void main() {
             intensity = smoothstep(animation_percentage - delta_apparition, animation_percentage - 0.2f, advance_percentage_bis);
         else {
             intensity = smoothstep(animation_percentage + 0.2f, animation_percentage + delta_apparition, advance_percentage_bis);
-            intensity = (intensity - 0.5f) * -1f + 0.5f; //Inverse the smoothstep function
+            intensity = (intensity - 0.5f) * -1.f + 0.5f; //Inverse the smoothstep function
         }
         intensity *= overall_alpha;
 
