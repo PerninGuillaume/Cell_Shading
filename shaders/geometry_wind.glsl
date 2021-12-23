@@ -57,13 +57,14 @@ void main() {
         } else {
             pos = pos_line_straight + offset_dir * sin(phase[0] + 2.f * 3.14f * advance_percentage / 3.f) * 4.f;
         }
-        gl_Position = projection * view * model * pos;
-        EmitVertex();
+        vec4 pos_down = projection * view * model * pos; // Store it to have a CCW order for the generated triangle to use with backface culling
 
         gl_Position = pos + 0.1f * width_dir;
         gl_Position = projection * view * model * gl_Position;
         EmitVertex();
 
+        gl_Position = pos_down;
+        EmitVertex();
 
         vec4 new_pos_line_straight;
         if (is_spiral)

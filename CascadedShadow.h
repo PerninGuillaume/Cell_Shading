@@ -7,7 +7,7 @@
 
 class CascadedShadow {
  public:
-  explicit CascadedShadow(unsigned int nb_division, unsigned int shadow_width = 1024, unsigned int shadow_height = 1024);
+  explicit CascadedShadow(unsigned int nb_division, unsigned int shadow_width, unsigned int shadow_height);
 
   void generate_depth_map_texture();
   void generate_depth_map_frame_buffer();
@@ -16,7 +16,7 @@ class CascadedShadow {
       , const glm::mat4& view, const glm::vec3& lightDir, const glm::mat4& model_mat_windfall, GLuint waterVAO);
 
   program* shadow_shader_depth;
-  unsigned int depthMapFBO;
+  unsigned int depthMapFBO{};
   std::vector<unsigned int> depthMapTextures;
   unsigned int nb_division;
   unsigned int shadow_width;

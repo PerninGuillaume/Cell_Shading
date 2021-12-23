@@ -9,6 +9,7 @@ struct DirLight {
     vec3 diffuse;
     vec3 specular;
 };
+uniform float light_coeff; // All fragment have the same normal, it is useless to compute the phong dot product for each of them
 
 out vec4 FragColor;
 
@@ -39,7 +40,7 @@ float ShadowCalculation(mat4 view, vec3 FragPosWorldSpace, int nb_cascades, floa
 , bool pcf, int square_sample_size, bool color_cascade_layer, sampler2D first_shadowMap_cascade
 , sampler2D second_shadowMap_cascade, sampler2D third_shadowMap_cascade, out vec3 debug_color_out);
 
-vec3 CalcDirLight(DirLight light, vec3 normal, vec3 col, float shadow);
+vec3 CalcDirLight(DirLight light, vec3 col, float shadow);
 
 void main()
 {
@@ -76,19 +77,16 @@ void main()
         fac = clamp(fac, 0, 1);
         FragColor = vec4(mix(colClose, colInter, fac), 1.0f);
     }
-    vec3 result = CalcDirLight(dirLight, normal, FragColor.rgb, shadow_coeff);
+    vec3 result = CalcDirLight(dirLight, FragColor.rgb, shadow_coeff);
     FragColor = vec4(result, 1.0f);
 }
 
-vec3 CalcDirLight(DirLight light, vec3 normal, vec3 col, float shadow) {
+vec3 CalcDirLight(DirLight light, vec3 col, float shadow) {
     //ambient
     vec3 ambient = light.ambient * col;
 
     // diffuse
-    vec3 lightDirection = normalize(-light.direction);
-    float coeff = max(dot(normal, lightDirection), 0.0f);
-
-    vec3 diffuse = light.diffuse * coeff * col;
+    vec3 diffuse = light.diffuse * light_coeff * col;
 
     //total
     vec3 result = ambient + (1.0 - shadow) * diffuse;

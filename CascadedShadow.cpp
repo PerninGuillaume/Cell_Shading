@@ -55,10 +55,6 @@ std::vector<glm::mat4> CascadedShadow::computeShadowCascaded(const windfall::Par
   glBindFramebuffer(GL_FRAMEBUFFER, this->depthMapFBO);
   this->shadow_shader_depth->set_uniform_mat4("model", model_mat_windfall);
 
-  if (params.peter_paning) {
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
-  }
 
   for (unsigned int i = 0; i < this->nb_division; ++i) {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->depthMapTextures[i], 0); //Bind right depth texture to render to
@@ -78,10 +74,6 @@ std::vector<glm::mat4> CascadedShadow::computeShadowCascaded(const windfall::Par
     glBindVertexArray(0);
 
   }
-
-
-  glDisable(GL_CULL_FACE);
-  glCullFace(GL_BACK);
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -115,13 +107,6 @@ std::vector<glm::vec4> get_frustrum_world_space_coordinates(const glm::mat4& vie
     glm::vec4 coord_world = ndc_to_world * coord;
     coords_world.emplace_back(coord_world / coord_world.w); // Ensure that w is 1
   }
-  /*
-  std::cout << std::setprecision(2) << std::fixed;
-    for (auto frustrum_coord : coords_world) {
-      std::cout << frustrum_coord[0] << ' ' << frustrum_coord[1] << ' ' << frustrum_coord[2] << " | ";
-    }
-    std::cout << std::endl;
-    */
 
   return coords_world;
 }

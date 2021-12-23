@@ -69,10 +69,6 @@ std::vector<glm::mat4> Shadow::computeShadow(const windfall::Param& params, Mode
   this->shadow_shader_depth->set_uniform_mat4("lightSpaceMatrix", lightSpaceMatrix);
   this->shadow_shader_depth->set_uniform_float("alpha_clip", params.alpha_clip);
 
-  if (params.peter_paning) {
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
-  }
   windfall_lowres.draw(this->shadow_shader_depth);
 
   glBindVertexArray(waterVAO);
@@ -81,8 +77,6 @@ std::vector<glm::mat4> Shadow::computeShadow(const windfall::Param& params, Mode
   //glEnable(GL_DEPTH_TEST);
   glBindVertexArray(0);
 
-  glDisable(GL_CULL_FACE);
-  glCullFace(GL_BACK);
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 

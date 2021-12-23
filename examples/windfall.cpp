@@ -26,13 +26,33 @@ const unsigned int NB_WAVES = 1000;
 std::shared_ptr<Camera> camera = std::make_shared<Camera>(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 Param params;
 
-void set_im_gui_options(bool use_im_gui) {
+void set_im_gui_options(bool use_im_gui, Shadow& shadow, CascadedShadow& cascadedShadow) {
 
   if (use_im_gui) {
     ImGui::Begin("Windfall options");
     ImGui::Checkbox("Hd textures", &params.hd);
+    bool tmp = false;
+    if (ImGui::Checkbox("Don't destroy my computer please", &tmp)) {
+      params.back_face_culling = true;
+      params.shadow_size = 512;
+      shadow = Shadow(params.shadow_size, params.shadow_size);
+      cascadedShadow = CascadedShadow(NB_CASCADES, params.shadow_size, params.shadow_size);
+      params.blend_between_cascade = false;
+      params.pcf = false;
+    }
+    if (ImGui::Checkbox("My computer can handle it", &tmp)) {
+      params.back_face_culling = false;
+      params.shadow_size = 4096;
+      shadow = Shadow(params.shadow_size, params.shadow_size);
+      cascadedShadow = CascadedShadow(NB_CASCADES, params.shadow_size, params.shadow_size);
+      params.blend_between_cascade = true;
+      params.pcf = true;
+    }
     if (ImGui::TreeNode("Sun")) {
       ImGui::Checkbox("Moving Sun", &params.cycle_day);
+      ImGui::SliderFloat("Angle sun", &params.angle_sun, 0.f, 360.f);
+      ImGui::SliderFloat3("Light position", params.light_pos, -100.0f, 100.0f);
+      ImGui::SliderFloat3("Light shadow center", params.light_shadow_center, -100.0f, 100.0f);
       ImGui::ColorPicker3("Center", (float*)&params.color_center);
       ImGui::ColorPicker3("Gradient", (float*)&params.color_gradient);
       ImGui::ColorPicker3("Additional Color Skybox", (float*)&params.color_skybox_change);
@@ -55,6 +75,13 @@ void set_im_gui_options(bool use_im_gui) {
 
     if (ImGui::TreeNode("Shadow")) {
       ImGui::Checkbox("Shadow", &params.use_shadow);
+
+      if (ImGui::SliderInt("Shadow texture size", &params.shadow_size, 128, 4069)) {
+        shadow = Shadow(params.shadow_size, params.shadow_size);
+        cascadedShadow = CascadedShadow(NB_CASCADES, params.shadow_size, params.shadow_size);
+      }
+
+      //ImGui::DragInt("Shadow texture size", &params.shadow_size, 2.0f, 1024, 4096);
       if (ImGui::Checkbox("Use cascaded shadow", &params.use_cascaded_shadow)) {
         std::vector<std::string> fragment_filenames {"shaders/fragment_link.glsl", "shaders/fragment_shadow.glsl"};
         if (params.use_cascaded_shadow)
@@ -71,19 +98,15 @@ void set_im_gui_options(bool use_im_gui) {
       ImGui::Checkbox("Depth texture", &params.display_depth_map);
       ImGui::Checkbox("Color Cascade Layer", &params.cascade_show_layers);
       ImGui::SliderInt("Cascade depth texture", &params.cascadeLevel, 0, NB_CASCADES - 1);
-      ImGui::Checkbox("Peter Paning", &params.peter_paning);
       ImGui::Checkbox("PCF", &params.pcf);
       ImGui::SliderInt("nb_samples_pcf", &params.square_sample_size, 0, 15);
-      ImGui::SliderFloat("Shadow bias", &params.shadow_bias, 0.0001f, 0.2f);
-      ImGui::SliderFloat3("Shadow biases", params.shadow_biases.data(), 0.001f, 0.4f);
+      ImGui::SliderFloat("Shadow bias", &params.shadow_bias, 0.0001f, 0.8f);
+      ImGui::SliderFloat3("Shadow biases", params.shadow_biases.data(), 0.001f, 0.8f);
       ImGui::SliderFloat("increase_shadow_frustum_z", &params.coeff_increase_shadow_frustum_z, 1.f, 5.f);
       ImGui::SliderFloat("increase_shadow_frustum_xy", &params.coeff_increase_shadow_frustum_xy, 1.f, 5.f);
-      ImGui::SliderFloat("Angle sun", &params.angle_sun, 0.f, 360.f);
-      ImGui::SliderFloat3("Light position", params.light_pos, -100.0f, 100.0f);
-      ImGui::SliderFloat3("Light shadow center", params.light_shadow_center, -100.0f, 100.0f);
 
-        ImGui::TreePop();
-        ImGui::Separator();
+      ImGui::TreePop();
+      ImGui::Separator();
     }
       if (ImGui::TreeNode("Water")) {
           ImGui::SliderFloat("Billboard size x", &params.billboard_size[0], 0.0f, 100.0f);
@@ -242,9 +265,12 @@ void display_water(program* program_water, GLuint waterVAO, const glm::mat4& vie
   program_water->set_uniform_mat4("projection", projection);
   program_water->set_uniform_mat4("model", model_mat_water);
 
-  program_water->set_uniform_vec3("dirLight.direction", lightDir);
+  glm::vec3 lightDirection = -lightDir;
+  float light_phong_coeff = std::max(dot(glm::vec3(0.f, 1.f, 0.f), lightDirection), 0.0f);
+  program_water->set_uniform_vec3("dirLight.direction", lightDirection);
   program_water->set_uniform_vec3("dirLight.ambient", params.light_ambient);
   program_water->set_uniform_vec3("dirLight.diffuse", params.light_diffuse);
+  program_water->set_uniform_float("light_coeff", light_phong_coeff);
 
 
   set_shadow_uniforms(program_water, cascaded_shadow, shadow, lightSpaceMatrices, 0);
@@ -405,52 +431,6 @@ void display_sun(program* program_sun, GLuint sunVAO, const std::vector<unsigned
 
 }
 
-void display_waves(program* program_waves, const std::vector<unsigned int>& waves_VAO, const glm::mat4& projection
-                    , const glm::vec3& center_of_waves, std::vector<bool>& wave_new_cycle_has_begun
-                    , const std::vector<glm::vec3>& waves_center, GLuint wavesTexture) {
-    program_waves->set_uniform_int("tex_wave", 0);
-//    view = glm::mat4(glm::mat3(camera->view_matrix())); // Remove the translation from the view matrix
-    glm::mat4 view = camera->view_matrix();
-
-    glm::mat4 model_mat_waves = glm::mat4(1.0f);
-//    view = glm::translate(view, glm::vec3(-offset * 10));
-    program_waves->set_uniform_mat4("view", view);
-    program_waves->set_uniform_mat4("projection", projection);
-    program_waves->set_uniform_mat4("model", model_mat_waves);
-    program_waves->set_uniform_vec3("camera_right", camera->right);
-    program_waves->set_uniform_vec3("camera_up", camera->up);
-    std::vector<glm::vec3> billboard_sizes(waves_VAO.size(), glm::vec3(params.billboard_size[0], params.billboard_size[1], 0.0f));
-    //glm::vec3 billboard_size = glm::vec3(params.billboard_size[0], params.billboard_size[1], 0.0f);
-
-
-    program_waves->set_uniform_vec3("center_waves", center_of_waves);
-    for (size_t i = 0; i < waves_VAO.size(); ++i) {
-        float percentage_apex = glm::sin(glfwGetTime() + (float)i);
-        //std::cout << i << ":" << percentage_apex << std::endl;
-        //float percentage_apex = (glm::sin(glfwGetTime()) + 1.0f) / 2.0f;
-        float percentage_displacement = fmod(glfwGetTime() + (float)i, 2 * PI) / (2 * PI);
-        //std::cout << percentage_apex << " " << percentage_displacement << std::endl;
-        if (percentage_apex < 0.0f && !wave_new_cycle_has_begun[i]) {
-            wave_new_cycle_has_begun[i] = true;
-            billboard_sizes[i][0] += rand() % 100;
-            billboard_sizes[i][1] += rand() % 100;
-        } else if (percentage_apex > 0.0f) {
-            wave_new_cycle_has_begun[i] = false;
-        }
-        program_waves->set_uniform_float("apex_percentage", percentage_apex);
-        program_waves->set_uniform_float("displacement_percentage", percentage_displacement);
-        program_waves->set_uniform_vec3("billboard_size", billboard_sizes[i][0],
-                                        billboard_sizes[i][1] * percentage_apex, 0.0f);
-        program_waves->set_uniform_vec3("wave_center", waves_center[i]);
-        //display_glm_vec3(waves_center[i]);
-        glBindVertexArray(waves_VAO[i]);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, wavesTexture);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        glBindVertexArray(0);
-    }
-}
-
 void display_waves_instanced(program* program_waves, GLuint wave_VAO, const std::vector<GLuint> wave_VBOs
     , const glm::mat4& projection, const glm::vec3& center_of_waves, std::vector<bool>& wave_new_cycle_has_begun
     , std::vector<glm::vec3>& waves_center, GLuint wavesTexture) {
@@ -579,8 +559,7 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
   if (use_im_gui) {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
-  }
-  else
+  } else
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
   glfwSetCursorPosCallback(window, mouse_callback);
@@ -588,7 +567,8 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
   // Setup Dear ImGui context
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
-  ImGuiIO& io = ImGui::GetIO(); (void)io;
+  ImGuiIO &io = ImGui::GetIO();
+  (void) io;
   // Setup Platfrom/Renderer bindings
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init("#version 450");
@@ -600,8 +580,8 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
                                          "shaders/geometry_normals.glsl");
   program *program_windfall;
   program *program_windfall_without_lighting = init_program("shaders/vertex_model.glsl",
-                                  "shaders/fragment_model.glsl");
-  std::vector<std::string> fragment_filenames {"shaders/fragment_link.glsl", "shaders/fragment_shadow.glsl"};
+                                                            "shaders/fragment_model.glsl");
+  std::vector<std::string> fragment_filenames{"shaders/fragment_link.glsl", "shaders/fragment_shadow.glsl"};
   std::map<std::string, std::string> cascade_map_replace = {{"NB_CASCADES_TO_REPLACE", std::to_string(NB_CASCADES)}};
   program *program_windfall_with_lighting = init_program("shaders/vertex_link.glsl",
                                                          fragment_filenames, "", cascade_map_replace);
@@ -618,11 +598,11 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
   program *program_shore = init_program("shaders/vertex_shore.glsl",
                                         fragment_filenames, "", cascade_map_replace);
   program *program_sun = init_program("shaders/vertex_sun.glsl",
-                                         "shaders/fragment_sun.glsl");
+                                      "shaders/fragment_sun.glsl");
   program *program_waves = init_program("shaders/vertex_wave.glsl",
-                                      "shaders/fragment_wave.glsl");
-  program *program_wind = init_program("shaders/vertex_wind.glsl"
-      , "shaders/fragment_wind.glsl", "shaders/geometry_wind.glsl");
+                                        "shaders/fragment_wave.glsl");
+  program *program_wind = init_program("shaders/vertex_wind.glsl", "shaders/fragment_wind.glsl",
+                                       "shaders/geometry_wind.glsl");
 
   //-------------------------------Model and texture loading------------------------------
   Model windfall_highres;
@@ -632,7 +612,7 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
 
 
   // Shadow
-  unsigned int size_shadow_texture = 4096;
+  unsigned int size_shadow_texture = params.shadow_size;
   Shadow shadow = Shadow(size_shadow_texture, size_shadow_texture);
   CascadedShadow cascaded_shadow = CascadedShadow(NB_CASCADES, size_shadow_texture, size_shadow_texture);
 
@@ -698,6 +678,13 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
 
     //--------------------Windfall rendering-----------------------
 
+    if (params.back_face_culling) {
+      glEnable(GL_CULL_FACE); // Cull back face to gain up to 6 fps !
+      glCullFace(GL_BACK);
+    } else {
+      glDisable(GL_CULL_FACE);
+    }
+
     if (params.wireframe)
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     else
@@ -721,8 +708,8 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
                                      params.light_shadow_center[2] - params.light_pos[2]);
 
       std::vector<glm::mat4> lightSpaceMatrices;
+      lightDir = glm::normalize(lightDir);
       if (params.use_shadow) {
-        lightDir = glm::normalize(lightDir);
         if (params.use_cascaded_shadow)
             lightSpaceMatrices = cascaded_shadow.computeShadowCascaded(params, camera, windfall_lowres, SRC_WIDTH,
                                                                        SRC_HEIGHT, view, lightDir, model_mat_windfall,
@@ -767,7 +754,7 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
 
     display_depth_map(quad_depth_shader, shadow, cascaded_shadow);
 
-    set_im_gui_options(use_im_gui);
+    set_im_gui_options(use_im_gui, shadow, cascaded_shadow);
 
     glfwGetWindowSize(window, &SRC_WIDTH, &SRC_HEIGHT);
     glfwSwapBuffers(window);

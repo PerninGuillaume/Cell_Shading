@@ -25,12 +25,12 @@ unsigned int water_create_VAO(float heightf) {
 
  float waterVertices[] = {
       -20000.0f, heightf, -20000.0f,
+      20000.0f, heightf, 20000.0f,
       20000.0f, heightf, -20000.0f,
-      20000.0f, heightf, 20000.0f,
-      20000.0f, heightf, 20000.0f,
+      -20000.0f, heightf, -20000.0f,
       -20000.0f, heightf, 20000.0f,
-      -20000.0f, heightf, -20000.0f
-      };
+      20000.0f, heightf, 20000.0f,
+     };
 
   unsigned int waterVAO, waterVBO;
   glGenVertexArrays(1, &waterVAO);

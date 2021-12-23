@@ -17,7 +17,7 @@ out vec4 FragPosLightSpace_cascade[NB_CASCADES];
 
 void main() {
     FragPosWorldSpace = vec3(model * vec4(aPos, 1.0f));
-    Normal = mat3(transpose(inverse(model))) * aNormal; //To have proper normal if we scale the object
+    Normal = aNormal;
     TexCoords = aTexCoords;
 
     for (int i = 0; i < NB_CASCADES; ++i) {

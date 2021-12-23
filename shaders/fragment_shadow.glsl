@@ -3,11 +3,13 @@
 const int NB_CASCADES = NB_CASCADES_TO_REPLACE;
 
 vec3 debug_color = vec3(0.f);
+float depth = 0.f; // Will be initialized by the find_cascaded_layer
+
 // This function finds in which part of the divided camera frustrum the current fragment is in.
 int find_cascaded_layer(mat4 view, vec3 FragPosWorldSpace, int nb_cascades, float cascade_z_limits[NB_CASCADES + 1]) {
     vec4 FragPosViewSpace_homegeneous = view * vec4(FragPosWorldSpace, 1.0f);
     vec3 FragPosViewSpace = FragPosViewSpace_homegeneous.xyz / FragPosViewSpace_homegeneous.w; // Don't think that is useful as the view does not change the 4th component
-    float depth = abs(FragPosViewSpace.z); // abs useful ?
+    depth = abs(FragPosViewSpace.z); // abs useful ?
     for (int i = 0; i < nb_cascades; ++i) {
         if (depth < cascade_z_limits[i + 1])
         return i;
@@ -15,22 +17,18 @@ int find_cascaded_layer(mat4 view, vec3 FragPosWorldSpace, int nb_cascades, floa
     return nb_cascades;
 }
 
-float percentage_sampling[2];
-int layer_index_sampling[2];
+float percentage_sampling[2] = {1.f, 0.f};
+int layer_index_sampling[2] = {1, -1};
 
 void compute_percentage_sampling_shadow_map(int layer, mat4 view, vec3 FragPosWorldSpace, float cascade_z_limits[NB_CASCADES + 1]
 , bool color_cascade_layer) {
-    vec4 FragPosViewSpace_homegeneous = view * vec4(FragPosWorldSpace, 1.0f);
-    vec3 FragPosViewSpace = FragPosViewSpace_homegeneous.xyz / FragPosViewSpace_homegeneous.w; // Don't think that is useful as the view does not change the 4th component
-    float depth = abs(FragPosViewSpace.z); // abs useful ?
-
     float band_blend_percentage = 0.05f;
     float extent_z_current_cascade = cascade_z_limits[layer + 1] - cascade_z_limits[layer];
     float size_current_band_blend = extent_z_current_cascade * band_blend_percentage;
     float percentage_in_current_cascade = (depth - cascade_z_limits[layer]) / extent_z_current_cascade;
     float inverse_band_blend_percentage = 1.f - band_blend_percentage;
 
-    if (percentage_in_current_cascade < band_blend_percentage && layer != 0) { // Just after beginning of cascade
+    if (layer != 0 && percentage_in_current_cascade < band_blend_percentage) { // Just after beginning of cascade
 
         float size_previous_band_blend = (cascade_z_limits[layer] - cascade_z_limits[layer - 1]) * band_blend_percentage;
         float percentage_in_current_band = (depth - cascade_z_limits[layer] + size_previous_band_blend) / (size_current_band_blend + size_previous_band_blend);
@@ -43,7 +41,7 @@ void compute_percentage_sampling_shadow_map(int layer, mat4 view, vec3 FragPosWo
         layer_index_sampling[0] = layer;
         layer_index_sampling[1] = layer - 1;
     }
-    else if (percentage_in_current_cascade > inverse_band_blend_percentage && layer != NB_CASCADES - 1) { // Just before beginning of cascade
+    else if (layer != NB_CASCADES - 1 && percentage_in_current_cascade > inverse_band_blend_percentage) { // Just before beginning of cascade
 
         float size_next_band_blend = (cascade_z_limits[layer + 2] - cascade_z_limits[layer + 1]) * band_blend_percentage;
         float percentage_in_current_band = (depth - (cascade_z_limits[layer + 1] - size_current_band_blend)) / (size_current_band_blend + size_next_band_blend);
