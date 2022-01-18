@@ -10,6 +10,7 @@
 #include "../Model.h"
 #include "../misc.h"
 #include "../Shadow.h"
+#include "../particles.h"
 #include "../CascadedShadow.h"
 #include "../windfall_objects.h"
 
@@ -615,7 +616,6 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
     windfall_highres = Model("models/textures_windfall_/textures_windfall_highres/Windfall.obj");
   Model windfall_lowres("models/textures_windfall_/textures_windfall_lowres/Windfall.obj");
 
-
   // Shadow
   unsigned int size_shadow_texture = params.shadow_size;
   Shadow shadow = Shadow(size_shadow_texture, size_shadow_texture);
@@ -655,6 +655,9 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
 
   // Wind
   unsigned int windVAO = wind_create_VAO();
+
+  // Fire
+  Particles fire = Particles(program_compute_particles, program_display_particles, program_render_particles);
 
   Helper helper = Helper(camera, use_im_gui);
 

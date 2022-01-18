@@ -31,7 +31,9 @@ add_executable(TP1
         Skybox.cpp
         Display_template.cpp
         misc.cpp
-        windfall_objects.cpp CascadedShadow.cpp CascadedShadow.h)
+        windfall_objects.cpp
+        CascadedShadow.cpp CascadedShadow.h
+        particles.cpp)
 
 add_executable(imgui_demo
         imgui_example.cpp

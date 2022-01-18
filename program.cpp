@@ -202,6 +202,13 @@ void program::set_uniform_vec3(const std::string &var_name, const glm::vec3 &vec
   glUniform3f(uniform_location, vec3.x, vec3.y, vec3.z);
 }
 
+void program::set_uniform_vec4(const std::string &var_name, const glm::vec4 &vec4) {
+  int uniform_location = glGetUniformLocation(this->my_program_, var_name.c_str());
+  this->use();
+  glUniform4f(uniform_location, vec4.r, vec4.g, vec4.b, vec4.a);
+}
+
+
 void program::set_uniform_vec3(const std::string &var_name, float val) {
   int uniform_location = glGetUniformLocation(this->my_program_, var_name.c_str());
   this->use();
@@ -276,3 +283,4 @@ void program::set_uniform_vector_mat4(const std::string& var_name, const std::ve
   }*/
   //glCheckError();
 }
+
