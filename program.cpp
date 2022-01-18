@@ -106,6 +106,27 @@ program *program::make_program_multiple_files(const std::string &vertex_shader_f
 
 }
 
+program *program::make_program(const std::string &compute_shader_filename,
+                               const std::map<std::string, std::string> &values_to_replace)
+{
+  program* program_res = new program();
+  GLuint my_program = glCreateProgram();
+
+  const std::string compute_shader_src = read_file(compute_shader_filename, values_to_replace);
+  if (compute_shader_src.empty())
+    std::cout << compute_shader_filename << " is read to be empty !\n";
+  GLuint my_compute_shader = glCreateShader(GL_COMPUTE_SHADER);
+  const GLchar *compute_src = (const GLchar*)compute_shader_src.c_str();
+  program_res->shaders_.emplace_back(my_compute_shader);
+  glShaderSource(my_compute_shader, 1, &compute_src, 0);
+  glCompileShader(my_compute_shader);
+  glAttachShader(my_program, my_compute_shader);
+  glLinkProgram(my_program);
+
+  program_res->my_program_ = my_program;
+  return program_res;
+}
+
 program *program::make_program(const std::string &vertex_shader_filename, const std::string& fragment_shader_filenames,
                              const std::string &geometry_shader_filename , const std::map<std::string, std::string>& values_to_replace) {
   return make_program_multiple_files(vertex_shader_filename, {fragment_shader_filenames}, geometry_shader_filename, values_to_replace);

@@ -13,6 +13,7 @@ class program {
   ~program();
   static program *make_program(const std::string &vertex_shader_filename, const std::string& fragment_shader_filenames,
                                const std::string &geometry_shader_filename = "", const std::map<std::string, std::string>& values_to_replace = {});
+  static program *make_program(const std::string &compute_shader_filename, const std::map<std::string, std::string>& values_to_replace = {});
   static program *make_program_multiple_files(const std::string &vertex_shader_filename, const std::vector<std::string>& fragment_shader_filenames,
                                const std::string &geometry_shader_filename = "", const std::map<std::string, std::string>& values_to_replace = {});
 

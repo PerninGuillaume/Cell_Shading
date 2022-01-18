@@ -603,6 +603,11 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
                                         "shaders/fragment_wave.glsl");
   program *program_wind = init_program("shaders/vertex_wind.glsl", "shaders/fragment_wind.glsl",
                                        "shaders/geometry_wind.glsl");
+  program *program_render_particles = init_program("shaders/vertex_render_particles.glsl",
+                                                   "shaders/fragment_render_particles.glsl");
+  program *program_display_particles = init_program("shaders/vertex_display_particles.glsl",
+                                                    "shaders/fragment_display_particles.glsl");
+  program *program_compute_particles = init_program("shaders/compute_particles.glsl");
 
   //-------------------------------Model and texture loading------------------------------
   Model windfall_highres;

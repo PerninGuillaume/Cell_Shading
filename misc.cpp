@@ -46,6 +46,18 @@ program *init_program(const std::string& vertex_shader_filename,
   return program;
 }
 
+program *init_program(const std::string& compute_shader_filename,
+                      const std::map<std::string, std::string>& values_to_replace)
+{
+  program *program = program::make_program(compute_shader_filename, values_to_replace);
+  std::cout << program->get_log();
+  if (!program->is_ready()) {
+    throw "Program is not ready";
+  }
+  program->use();
+  return program;
+}
+
 program *init_program(const std::string& vertex_shader_filename,
                       const std::string& fragment_shader_filename, const std::string& geometry_shader_filename
                       , const std::map<std::string, std::string>& values_to_replace) {
