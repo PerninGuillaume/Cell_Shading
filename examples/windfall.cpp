@@ -657,7 +657,7 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
   unsigned int windVAO = wind_create_VAO();
 
   // Fire
-  Particles fire = Particles(program_compute_particles, program_display_particles, program_render_particles);
+  Particles fire = Particles(program_compute_particles, program_render_particles, program_display_particles);
 
   Helper helper = Helper(camera, use_im_gui);
 
@@ -760,6 +760,8 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
 
     display_wind(program_wind, windVAO, view, projection);
 
+    fire.render(glm::perspective( glm::radians(50.0f), (float)SRC_WIDTH/SRC_HEIGHT, 1.0f, 100.0f));
+    
     display_depth_map(quad_depth_shader, shadow, cascaded_shadow);
 
     set_im_gui_options(use_im_gui, shadow, cascaded_shadow);

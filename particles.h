@@ -30,7 +30,7 @@ private:
     glm::vec2 center;
     float cheight;
 
-    glm::mat4 projection;
+    glm::mat4 m_projection;
 
     int width, height;
     float time, deltaT, speed;
@@ -38,7 +38,7 @@ private:
     float angleParticles;
 
     void initBuffers();
-    void setMatrices(glm::mat4 view, glm::mat4 model, glm::mat4 projection);
+    void setMatrices(const glm::mat4& view, const glm::mat4& model, const glm::mat4& projection);
 
 
 public:

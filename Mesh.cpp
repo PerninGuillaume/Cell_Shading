@@ -33,6 +33,8 @@ void Mesh::draw(program* program) {
   glActiveTexture(GL_TEXTURE0);
 
   glBindVertexArray(VAO);
+  glPointSize(1.0f);
+
   glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
   glBindVertexArray(0);
 }

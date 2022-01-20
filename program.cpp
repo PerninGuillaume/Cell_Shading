@@ -218,6 +218,7 @@ void program::set_uniform_vec3(const std::string &var_name, float val) {
 void program::set_uniform_mat4(const std::string &var_name, const glm::mat4 &mat) {
   int uniform_location = glGetUniformLocation(this->my_program_, var_name.c_str());
   this->use();
+
   glUniformMatrix4fv(uniform_location, 1, GL_FALSE, glm::value_ptr(mat));
 }
 
