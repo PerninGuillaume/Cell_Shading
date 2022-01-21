@@ -19,6 +19,7 @@ unsigned int skyBox_create_VAO();
 std::vector<unsigned int> loadClouds();
 
 unsigned int clouds_create_VAO();
+unsigned int fire_create_VAO();
 
 std::pair<unsigned int, std::vector<unsigned int>> waves_create_VAO_vector(int nb_of_waves, std::vector<glm::vec3> &waves_center, const glm::vec3& center_of_waves);
 

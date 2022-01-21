@@ -11,7 +11,7 @@ struct Param {
   bool with_lighting = true;
   bool wireframe = false;
   bool use_zAtoon = false;
-  bool back_face_culling = true;
+  bool back_face_culling = false;
   bool no_texture = false;
   bool display_normals = false;
   bool use_shadow = true;
@@ -45,7 +45,7 @@ struct Param {
   ImVec4 color_center = ImVec4(246 / 255.0f, 197 / 255.0f, 193 / 255.0f, 1.0f);
   ImVec4 color_gradient = ImVec4(146 / 255.0f, 145 / 255.0f, 7 / 255.0f, 1.0f);
   ImVec4 color_skybox_change = ImVec4(0 / 255.0f, 0 / 255.0f, 0 / 255.0f, 1.0f);
-  bool cycle_day = false;
+  bool cycle_day = true;
   float blend_skybox_color = 0.2f;
   float sun_magnification = 330.0f;
   float lowest_eye_cancer = 0.1f;

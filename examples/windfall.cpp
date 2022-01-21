@@ -356,38 +356,81 @@ void display_shore(program* program_shore, const Helper& helper, GLuint shoreVAO
 
 }
 
-void display_clouds(program* program_clouds, GLuint cloudsVAO, const Helper& helper
-                    , const std::vector<unsigned int>& cloudsTextures, const glm::mat4& projection) {
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    program_clouds->use();
+void display_fire(program* program_fire, GLuint cloudsVAO, const Helper& helper
+                    , int fireTexture, const glm::mat4& projection) {
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  program_fire->use();
 
-    program_clouds->set_uniform_int("tex_cloud", 0);
-    program_clouds->set_uniform_int("tex_cloud_mask", 1);
-    glm::mat4 view = glm::mat4(glm::mat3(camera->view_matrix())); // Remove the translation from the view matrix
-//    view = camera->view_matrix();
-    if (params.offset > 1.0)
-        params.offset = -1.0;
-    program_clouds->set_uniform_float("offset", params.offset);
+  std::vector<glm::mat4> model_matrices = {glm::translate(glm::mat4(1.0f), glm::vec3(7.345,29.306, -52.272)),
+                                           glm::translate(glm::mat4(1.0f), glm::vec3(18.11 + 0.024,9.558 -0.55,-53.373 + 0.024)),
+                                           glm::translate(glm::mat4(1.0f), glm::vec3(18.062,10.407, -44.809)),
+                                           glm::translate(glm::mat4(1.0f), glm::vec3(18.78, 8.971, -49.498))};
 
-    glm::mat4 model_mat_clouds = glm::mat4(1.0f);
-//    view = glm::translate(view, glm::vec3(-offset * 10));
-    program_clouds->set_uniform_mat4("view", view);
-    program_clouds->set_uniform_mat4("projection", projection);
-    program_clouds->set_uniform_float("alpha_clip", params.alpha_clip);
-    program_clouds->set_uniform_mat4("model", model_mat_clouds);
-    params.offset += helper.deltaTime / 100;
+  std::vector<glm::vec3> billboard_sizes = {glm::vec3(0.7, 1.0, 1.0),
+                                            glm::vec3(0.3,0.5,1.0),
+                                            glm::vec3(0.3,0.5,1.0),
+                                            glm::vec3(0.3,0.5,1.0)};
 
+//  glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(params.offset_x + params.offset_x_fine,
+//                                                              params.offset_y + params.offset_y_fine,
+//                                                              params.offset_z + params.offset_z_fine));
+//
+//  std::cout << params.offset_x + params.offset_x_fine << " " << params.offset_y + params.offset_y_fine
+//            << " " << params.offset_z + params.offset_z_fine << "\n";
+//
+//  program_fire->set_uniform_mat4("model", model);
 
+  program_fire->set_uniform_mat4("view", camera->view_matrix());
+  program_fire->set_uniform_mat4("projection", projection);
+  program_fire->set_uniform_vec3("camera_right", camera->right);
+  program_fire->set_uniform_vec3("camera_up", camera->up);
+
+  for (int i = 0; i < model_matrices.size(); i++)
+  {
+    glm::mat4 model = model_matrices[i];
+
+    program_fire->set_uniform_mat4("model", model);
+    program_fire->set_uniform_vec3("billboard_size_", billboard_sizes[i]);
     glBindVertexArray(cloudsVAO);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, cloudsTextures[2]);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, cloudsTextures[3]);
+    glBindTexture(GL_TEXTURE_2D, fireTexture);
     glDrawArrays(GL_TRIANGLES, 0, 6 * 4);
     glBindVertexArray(0);
-
+  }
 }
+
+    void display_clouds(program* program_clouds, GLuint cloudsVAO, const Helper& helper
+            , const std::vector<unsigned int>& cloudsTextures, const glm::mat4& projection) {
+      glEnable(GL_BLEND);
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      program_clouds->use();
+
+      program_clouds->set_uniform_int("tex_cloud", 0);
+      program_clouds->set_uniform_int("tex_cloud_mask", 1);
+      glm::mat4 view = glm::mat4(glm::mat3(camera->view_matrix())); // Remove the translation from the view matrix
+//    view = camera->view_matrix();
+      if (params.offset > 1.0)
+        params.offset = -1.0;
+      program_clouds->set_uniform_float("offset", params.offset);
+
+      glm::mat4 model_mat_clouds = glm::mat4(1.0f);
+//    view = glm::translate(view, glm::vec3(-offset * 10));
+      program_clouds->set_uniform_mat4("view", view);
+      program_clouds->set_uniform_mat4("projection", projection);
+      program_clouds->set_uniform_float("alpha_clip", params.alpha_clip);
+      program_clouds->set_uniform_mat4("model", model_mat_clouds);
+      params.offset += helper.deltaTime / 100;
+
+
+      glBindVertexArray(cloudsVAO);
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_2D, cloudsTextures[2]);
+      glActiveTexture(GL_TEXTURE1);
+      glBindTexture(GL_TEXTURE_2D, cloudsTextures[3]);
+      glDrawArrays(GL_TRIANGLES, 0, 6 * 4);
+      glBindVertexArray(0);
+    }
 
 void display_sun(program* program_sun, GLuint sunVAO, const std::vector<unsigned int>& sun_textures
                  , const glm::mat4& projection, float alignment, float alignment_limit) {
@@ -657,6 +700,8 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
   unsigned int windVAO = wind_create_VAO();
 
   // Fire
+  std::vector<unsigned int> fireTextures = loadClouds();
+  unsigned int fireVAO = fire_create_VAO();
   Particles fire = Particles(program_compute_particles, program_render_particles, program_display_particles);
 
   Helper helper = Helper(camera, use_im_gui);
@@ -760,8 +805,9 @@ void display(GLFWwindow *window, bool load_hd_texture, bool use_im_gui) {
 
     display_wind(program_wind, windVAO, view, projection);
 
-    fire.render(glm::perspective( glm::radians(50.0f), (float)SRC_WIDTH/SRC_HEIGHT, 1.0f, 100.0f));
-    
+    int fire_texture = fire.render(glm::perspective( glm::radians(50.0f), (float)SRC_WIDTH/SRC_HEIGHT, 1.0f, 100.0f));
+    display_fire(program_display_particles, fireVAO, helper, fire_texture, projection);
+
     display_depth_map(quad_depth_shader, shadow, cascaded_shadow);
 
     set_im_gui_options(use_im_gui, shadow, cascaded_shadow);

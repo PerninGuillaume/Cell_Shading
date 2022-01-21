@@ -78,6 +78,44 @@ std::vector<unsigned int> loadClouds()
   return clouds;
 }
 
+unsigned int fire_create_VAO() {
+
+  std::vector<float> cloudsVerticesV = {};
+
+  float x_start = -1;
+  float x_end = 1;
+  float y_start = -1;
+  float y_end = 1;
+
+  float height = 1;
+
+  std::vector<float> vertices = {
+          // position                tex coords
+          x_start,  -height, y_end,            1.0f, 0.0f,
+          x_end,  -height, y_start,            0.0f, 0.0f,
+          x_end,  height, y_start,            0.0f, 1.0f,
+          x_end,  height, y_start,            0.0f, 1.0f,
+          x_start,  height, y_end,            1.0f, 1.0f,
+          x_start,  -height, y_end,            1.0f, 0.0f
+  };
+
+  cloudsVerticesV.insert(cloudsVerticesV.end(), vertices.begin(), vertices.end());
+
+  unsigned int cloudsVAO, cloudsVBO;
+  glGenVertexArrays(1, &cloudsVAO);
+  glGenBuffers(1, &cloudsVBO);
+  glBindVertexArray(cloudsVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, cloudsVBO);
+  glBufferData(GL_ARRAY_BUFFER, cloudsVerticesV.size() * sizeof(float), cloudsVerticesV.data(), GL_STATIC_DRAW);
+
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+  glEnableVertexAttribArray(1);
+
+  return cloudsVAO;
+}
+
 
 unsigned int clouds_create_VAO() {
   float r = -500;

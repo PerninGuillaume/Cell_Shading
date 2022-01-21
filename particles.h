@@ -46,6 +46,6 @@ public:
 
     void init();
     void update( float t );
-    void render(glm::mat4 projections);
+    int render(glm::mat4 projections);
     void resize(int, int);
 };
